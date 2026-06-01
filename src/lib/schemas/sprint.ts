@@ -54,8 +54,22 @@ export const sprintSchema = z.object({
   nextExperimentOptions: z.array(z.string()),
 });
 
+export const fitScoreSchema = z.object({
+  total: z.number(),
+  speedToFirstRevenue: z.number(),
+  abilityToReachBuyers: z.number(),
+  founderFit: z.number(),
+  painUrgency: z.number(),
+  lowStartupCost: z.number(),
+  executionSimplicity: z.number(),
+  whyThisScore: z.array(z.string()),
+  biggestRisk: z.string(),
+  fastestValidationStep: z.string(),
+});
+
 export type ChannelPlan = z.infer<typeof channelPlanSchema>;
 export type SprintDay = z.infer<typeof sprintDaySchema>;
 export type OutreachMessage = z.infer<typeof outreachMessageSchema>;
 export type SprintMetrics = z.infer<typeof sprintMetricsSchema>;
 export type RevenueSprint = z.infer<typeof sprintSchema>;
+export type RevenueFitScore = z.infer<typeof fitScoreSchema>;
