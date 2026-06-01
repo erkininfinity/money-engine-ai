@@ -7,6 +7,7 @@ import { GeneratedPath } from "@/lib/schemas/path-generation";
 import { OfferDraft } from "@/lib/schemas/offer";
 import { RevenueSprint, SprintMetrics } from "@/lib/schemas/sprint";
 import { WeeklyReview } from "@/lib/schemas/review";
+import { playbookCategorySchema, RevenuePlaybook } from "@/lib/schemas/playbook";
 import { 
   ArrowRight, 
   ArrowLeft, 
@@ -24,7 +25,11 @@ import {
   TrendingUp,
   BarChart2,
   Play,
-  RotateCcw
+  RotateCcw,
+  BookOpen,
+  Search,
+  Check,
+  CheckSquare as CheckedIcon
 } from "lucide-react";
 
 // Default Profile state
@@ -58,7 +63,7 @@ const initialMetrics: SprintMetrics = {
 };
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<"generator" | "active_sprint">("generator");
+  const [activeTab, setActiveTab] = useState<"generator" | "active_sprint" | "library">("generator");
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [profile, setProfile] = useState<FounderProfileLite>(initialProfile);
   
@@ -72,9 +77,14 @@ export default function Home() {
   const [offer, setOffer] = useState<OfferDraft | null>(null);
   const [sprint, setSprint] = useState<RevenueSprint | null>(null);
   
+  // Playbook Library state
+  const [playbooks, setPlaybooks] = useState<RevenuePlaybook[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState("all");
+  const [detailPlaybook, setDetailPlaybook] = useState<RevenuePlaybook | null>(null);
+
   // Active tracker states
   const [activeSprint, setActiveSprint] = useState<RevenueSprint | null>(null);
-  const [completedDays, setCompletedDays] = useState<Record<number, boolean>>({});
   const [checkedActions, setCheckedActions] = useState<Record<string, boolean>>({});
   const [selectedDayTab, setSelectedDayTab] = useState<number>(1);
   
@@ -86,6 +96,17 @@ export default function Home() {
 
   // Copy to clipboard status
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+
+  const copyToClipboard = (text: string, index: number) => {
+    if (typeof window !== "undefined" && navigator.clipboard) {
+      navigator.clipboard.writeText(text).then(() => {
+        setCopiedIndex(index);
+        setTimeout(() => setCopiedIndex(null), 2000);
+      }).catch((e) => {
+        console.error("Failed to copy text: ", e);
+      });
+    }
+  };
 
   // Load state from localStorage on mount
   useEffect(() => {
@@ -118,6 +139,22 @@ export default function Home() {
     if (savedReview) {
       try { setWeeklyReview(JSON.parse(savedReview)); } catch (e) { console.error(e); }
     }
+  }, []);
+
+  // Fetch Playbook Library on mount
+  useEffect(() => {
+    const fetchPlaybooks = async () => {
+      try {
+        const res = await fetch("/api/playbooks");
+        const data = await res.json();
+        if (data.playbooks) {
+          setPlaybooks(data.playbooks);
+        }
+      } catch (e) {
+        console.error("Error loading playbooks library:", e);
+      }
+    };
+    fetchPlaybooks();
   }, []);
 
   const updateProfile = (newProfile: FounderProfileLite) => {
@@ -203,11 +240,100 @@ export default function Home() {
     }
   };
 
+  // Skip wizard and use a playbook directly
+  const handleUsePlaybookDirectly = (pb: RevenuePlaybook) => {
+    // Create a simulated GeneratedPath
+    const simulatedPath: GeneratedPath = {
+      id: pb.id,
+      name: pb.name,
+      category: pb.category,
+      targetCustomers: pb.targetCustomers,
+      pain: pb.painfulProblem,
+      firstOfferExample: pb.firstOffer.promise,
+      score: {
+        total: 100,
+        speedToFirstRevenue: pb.speedToFirstRevenue === "fast" ? 10 : pb.speedToFirstRevenue === "medium" ? 7 : 4,
+        abilityToReachBuyers: pb.trustRequired === "low" ? 10 : pb.trustRequired === "medium" ? 7 : 4,
+        founderFit: 10,
+        painUrgency: 8,
+        lowStartupCost: pb.startupCostLevel === "none" ? 10 : pb.startupCostLevel === "low" ? 7 : 4,
+        executionSimplicity: pb.executionDifficulty === "low" ? 10 : pb.executionDifficulty === "medium" ? 7 : 4,
+        whyThisScore: ["Loaded directly from the verified playbook library."],
+        biggestRisk: pb.risks[0] || "None specified.",
+        fastestValidationStep: pb.firstOffer.callToAction
+      },
+      risks: pb.risks,
+      firstChannels: pb.firstChannels,
+      nextSteps: pb.improvements
+    };
+
+    // Create OfferDraft
+    const initialOfferDraft: OfferDraft = {
+      name: pb.firstOffer.name,
+      targetCustomer: pb.targetCustomers[0] || "B2B Clients",
+      painfulProblem: pb.painfulProblem,
+      promisedOutcome: pb.promisedOutcome,
+      timeframe: "7 Days",
+      mechanism: pb.requiredSkills.join(", "),
+      deliverables: pb.firstOffer.deliverables,
+      exclusions: pb.firstOffer.exclusions,
+      priceRange: `${pb.priceRange.min || 49000}-${pb.priceRange.max || 99000} ${pb.priceRange.currency}`,
+      proofNeeded: pb.risks.slice(0, 2),
+      trustBuilders: pb.improvements.slice(0, 2),
+      objections: pb.antiPatterns.slice(0, 2),
+      callToAction: pb.firstOffer.callToAction
+    };
+
+    // Create Sprint Plan directly from Playbook to support token-free offline use
+    const initialSprintDraft: RevenueSprint = {
+      id: pb.id,
+      title: pb.name,
+      goal: pb.first7DaySprint.goal,
+      hypothesis: pb.promisedOutcome,
+      offer: initialOfferDraft,
+      targetAudience: pb.targetCustomers.join(", "),
+      channelPlan: {
+        primaryChannel: pb.firstChannels[0] || "Outreach",
+        secondaryChannel: pb.firstChannels[1],
+        whyThisChannel: `Pre-configured channel strategy for ${pb.name}`,
+        firstProspectListInstructions: [
+          "Search local directories and LinkedIn to locate targets",
+          "Identify 15 decision makers",
+          "Log links in active spreadsheet"
+        ],
+        dailyOutreachLimit: 10,
+        personalizationRules: ["Address the owner by name", "Offer the specific diagnostic CTA"],
+        complianceNotes: ["Do not spam", "Respect opt-out requests"]
+      },
+      dailyActions: pb.first7DaySprint.dailyActions.map(day => ({
+        day: day.day,
+        objective: day.objective,
+        actions: day.actions,
+        expectedOutput: `Output for day ${day.day}`,
+        timeEstimateMinutes: 90
+      })),
+      outreachMessages: (pb.exampleMessages || []).map((msg, i) => ({
+        type: "cold_personal",
+        label: `Script variant ${i + 1}`,
+        content: msg,
+        instructions: pb.firstOffer.callToAction
+      })),
+      reviewQuestions: pb.reviewQuestions,
+      nextExperimentOptions: pb.improvements
+    };
+
+    setSelectedPath(simulatedPath);
+    setOffer(initialOfferDraft);
+    setSprint(initialSprintDraft);
+    setDetailPlaybook(null);
+    setStep(3); // Go straight to Offer Editor
+    setActiveTab("generator");
+  };
+
   const handleStartSprint = () => {
     if (!sprint) return;
     setActiveSprint(sprint);
     setCheckedActions({});
-    setCompletedDays({});
     setWeeklyReview(null);
     setSelectedDayTab(1);
     
@@ -282,12 +408,6 @@ export default function Home() {
     }
   };
 
-  const copyToClipboard = (text: string, index: number) => {
-    navigator.clipboard.writeText(text);
-    setCopiedIndex(index);
-    setTimeout(() => setCopiedIndex(null), 2000);
-  };
-
   const handleExportReviewMarkdown = () => {
     if (!weeklyReview || !activeSprint) return;
 
@@ -334,7 +454,6 @@ export default function Home() {
 
   const handleExportMarkdown = () => {
     if (!sprint) return;
-    // (Phase 2 Markdown Exporter logic remains identical for clean code)
     const lines = [
       `# Спринт: ${sprint.title}`,
       `\n**Цель:** ${sprint.goal}`,
@@ -390,6 +509,20 @@ export default function Home() {
     URL.revokeObjectURL(url);
   };
 
+  // Filter playbooks library
+  const filteredPlaybooks = playbooks.filter((pb) => {
+    const matchesSearch =
+      pb.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      pb.summary.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      pb.painfulProblem.toLowerCase().includes(searchQuery.toLowerCase());
+      
+    const matchesCategory =
+      selectedCategoryFilter === "all" || pb.category === selectedCategoryFilter;
+      
+    return matchesSearch && matchesCategory;
+  });
+
+  // Badge Input Suggestions
   const skillSuggestions = ["Make.com automation", "Zapier integration", "n8n workflows", "Notion setup", "Website conversion audit", "Cold calling", "CRM pipeline cleanup", "Short video editing"];
   const experienceSuggestions = ["1 year agency sales rep", "no-code builder hobbyist", "former support specialist", "freelance designer for local shops"];
   const audienceSuggestions = ["10 local business contacts", "member of local startup chat", "past clients from Upwork", "warm contacts in service shops"];
@@ -413,6 +546,18 @@ export default function Home() {
           >
             <Sparkles size={14} />
             {profile.language === "ru" ? "Генератор планов" : "Plan Generator"}
+          </button>
+
+          <button
+            onClick={() => setActiveTab("library")}
+            className={`flex items-center gap-1.5 text-sm font-semibold py-1.5 px-3 rounded-lg transition-all cursor-pointer ${
+              activeTab === "library"
+                ? "bg-indigo-600 text-white"
+                : "text-slate-400 hover:text-slate-200"
+            }`}
+          >
+            <BookOpen size={14} />
+            {profile.language === "ru" ? "Библиотека сценариев" : "Playbook Library"}
           </button>
 
           {activeSprint && (
@@ -458,7 +603,7 @@ export default function Home() {
             <header className="text-center mb-10 slide-up">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-semibold uppercase tracking-wider mb-3">
                 <Sparkles size={12} className="pulse-light" />
-                Money Engine AI v0.2.0
+                Money Engine AI v0.3.0
               </div>
               <h1 className="text-4xl md:text-5xl font-black tracking-tight mb-2">
                 <span className="text-gradient">Money Engine AI</span>
@@ -497,7 +642,6 @@ export default function Home() {
                 </h2>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                  {/* Language */}
                   <div className="flex flex-col gap-2">
                     <label className="text-sm font-semibold text-slate-300">Language / Язык вывода ИИ</label>
                     <select
@@ -510,7 +654,6 @@ export default function Home() {
                     </select>
                   </div>
 
-                  {/* Location */}
                   <div className="flex flex-col gap-2">
                     <label className="text-sm font-semibold text-slate-300">Location / Локация</label>
                     <input
@@ -522,7 +665,6 @@ export default function Home() {
                     />
                   </div>
 
-                  {/* Target Income */}
                   <div className="flex flex-col gap-2">
                     <label className="text-sm font-semibold text-slate-300">Target Monthly Income / Цель по доходу</label>
                     <input
@@ -534,7 +676,6 @@ export default function Home() {
                     />
                   </div>
 
-                  {/* Hours */}
                   <div className="flex flex-col gap-2">
                     <label className="text-sm font-semibold text-slate-300">Available Hours / Часы в неделю</label>
                     <input
@@ -545,7 +686,6 @@ export default function Home() {
                     />
                   </div>
 
-                  {/* Budget */}
                   <div className="flex flex-col gap-2">
                     <label className="text-sm font-semibold text-slate-300">Startup Budget / Стартовый бюджет</label>
                     <select
@@ -559,7 +699,6 @@ export default function Home() {
                     </select>
                   </div>
 
-                  {/* Sales Comfort */}
                   <div className="flex flex-col gap-2">
                     <label className="text-sm font-semibold text-slate-300">Sales Comfort / Комфорт в продажах</label>
                     <select
@@ -573,7 +712,6 @@ export default function Home() {
                     </select>
                   </div>
 
-                  {/* Work Type */}
                   <div className="flex flex-col gap-2">
                     <label className="text-sm font-semibold text-slate-300">Preferred Work Type / Вид работы</label>
                     <select
@@ -596,7 +734,7 @@ export default function Home() {
                     value={profile.skills}
                     onChange={(tags) => updateProfile({ ...profile, skills: tags })}
                     placeholder="Type skill & press Enter..."
-                    label={profile.language === "ru" ? "Ваши ключевые навыки (Skills)" : "Your Skills"}
+                    label={profile.language === "ru" ? "Ваши навыки (Skills)" : "Your Skills"}
                     suggestions={skillSuggestions}
                   />
 
@@ -604,7 +742,7 @@ export default function Home() {
                     value={profile.pastExperience}
                     onChange={(tags) => updateProfile({ ...profile, pastExperience: tags })}
                     placeholder="Type experience & press Enter..."
-                    label={profile.language === "ru" ? "Прошлый опыт работы (Experience)" : "Past Experience"}
+                    label={profile.language === "ru" ? "Прошлый опыт (Experience)" : "Past Experience"}
                     suggestions={experienceSuggestions}
                   />
 
@@ -689,71 +827,6 @@ export default function Home() {
                         </div>
                       </div>
 
-                      {/* Why this score */}
-                      <div className="text-xs text-slate-400">
-                        <h4 className="font-bold text-slate-200 mb-1">{profile.language === "ru" ? "Почему такой скоринг:" : "Why this score:"}</h4>
-                        <ul className="list-disc list-inside space-y-0.5">
-                          {p.score.whyThisScore.map((why, i) => (
-                            <li key={i}>{why}</li>
-                          ))}
-                        </ul>
-                      </div>
-
-                      {/* Blocker */}
-                      <div className="flex items-start gap-2 bg-amber-500/5 border border-amber-500/10 p-3 rounded-lg text-xs text-amber-400/90">
-                        <ShieldAlert size={14} className="mt-0.5 shrink-0" />
-                        <div>
-                          <span className="font-bold mr-1">{profile.language === "ru" ? "Главный риск:" : "Biggest Risk:"}</span>
-                          {p.score.biggestRisk}
-                        </div>
-                      </div>
-
-                      {/* Score Bars Grid */}
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5 p-3 rounded-lg bg-slate-950/20 border border-slate-900/60 text-[11px] text-slate-400">
-                        <div>
-                          <div className="flex justify-between mb-0.5 font-medium">
-                            <span>{profile.language === "ru" ? "Скорость денег" : "Speed"}</span>
-                            <span>{p.score.speedToFirstRevenue}/10</span>
-                          </div>
-                          <div className="w-full h-1 bg-slate-800 rounded-full"><div className="h-full bg-indigo-500 rounded-full" style={{width: `${p.score.speedToFirstRevenue * 10}%`}} /></div>
-                        </div>
-                        <div>
-                          <div className="flex justify-between mb-0.5 font-medium">
-                            <span>{profile.language === "ru" ? "Доступ к лидам" : "Reach"}</span>
-                            <span>{p.score.abilityToReachBuyers}/10</span>
-                          </div>
-                          <div className="w-full h-1 bg-slate-800 rounded-full"><div className="h-full bg-indigo-500 rounded-full" style={{width: `${p.score.abilityToReachBuyers * 10}%`}} /></div>
-                        </div>
-                        <div>
-                          <div className="flex justify-between mb-0.5 font-medium">
-                            <span>{profile.language === "ru" ? "Ваш навык" : "Founder Fit"}</span>
-                            <span>{p.score.founderFit}/10</span>
-                          </div>
-                          <div className="w-full h-1 bg-slate-800 rounded-full"><div className="h-full bg-indigo-500 rounded-full" style={{width: `${p.score.founderFit * 10}%`}} /></div>
-                        </div>
-                        <div>
-                          <div className="flex justify-between mb-0.5 font-medium">
-                            <span>{profile.language === "ru" ? "Острая боль" : "Pain Urgency"}</span>
-                            <span>{p.score.painUrgency}/10</span>
-                          </div>
-                          <div className="w-full h-1 bg-slate-800 rounded-full"><div className="h-full bg-indigo-500 rounded-full" style={{width: `${p.score.painUrgency * 10}%`}} /></div>
-                        </div>
-                        <div>
-                          <div className="flex justify-between mb-0.5 font-medium">
-                            <span>{profile.language === "ru" ? "Дешевизна" : "Low Budget"}</span>
-                            <span>{p.score.lowStartupCost}/10</span>
-                          </div>
-                          <div className="w-full h-1 bg-slate-800 rounded-full"><div className="h-full bg-indigo-500 rounded-full" style={{width: `${p.score.lowStartupCost * 10}%`}} /></div>
-                        </div>
-                        <div>
-                          <div className="flex justify-between mb-0.5 font-medium">
-                            <span>{profile.language === "ru" ? "Простота шага" : "Simplicity"}</span>
-                            <span>{p.score.executionSimplicity}/10</span>
-                          </div>
-                          <div className="w-full h-1 bg-slate-800 rounded-full"><div className="h-full bg-indigo-500 rounded-full" style={{width: `${p.score.executionSimplicity * 10}%`}} /></div>
-                        </div>
-                      </div>
-
                       <button
                         onClick={() => handleSelectPath(p)}
                         className="w-full bg-indigo-600/25 hover:bg-indigo-600 text-indigo-200 hover:text-white border border-indigo-500/30 hover:border-transparent py-2.5 rounded-xl font-bold transition-all text-sm mt-2 cursor-pointer text-center"
@@ -771,7 +844,13 @@ export default function Home() {
               <section className="glass-card p-6 md:p-8 slide-up">
                 <div className="flex justify-between items-center mb-6 border-b border-slate-800/80 pb-3">
                   <button
-                    onClick={() => setStep(2)}
+                    onClick={() => {
+                      if (selectedPath?.id && playbooks.some(pb => pb.id === selectedPath.id)) {
+                        setActiveTab("library");
+                      } else {
+                        setStep(2);
+                      }
+                    }}
                     className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-white transition-colors cursor-pointer"
                   >
                     <ArrowLeft size={16} />
@@ -829,7 +908,7 @@ export default function Home() {
               </section>
             )}
 
-            {/* STEP 4: Review generated Sprint before activating */}
+            {/* STEP 4: Sprint preview */}
             {step === 4 && sprint && (
               <section className="flex flex-col gap-8 slide-up">
                 <div className="flex justify-between items-center">
@@ -847,28 +926,11 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* Info Card */}
                 <div className="glass-card p-6 flex flex-col gap-3">
                   <span className="text-xs font-semibold px-2 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 uppercase tracking-wider w-fit">Draft Plan Ready</span>
                   <h2 className="text-2xl font-black text-white">{sprint.title}</h2>
                   <p className="text-slate-300 text-sm"><span className="font-bold text-slate-200">Goal:</span> {sprint.goal}</p>
                   <p className="text-slate-300 text-sm"><span className="font-bold text-slate-200">Hypothesis:</span> {sprint.hypothesis}</p>
-                </div>
-
-                {/* Day preview */}
-                <div className="glass-card p-6 flex flex-col gap-4">
-                  <h3 className="font-bold text-white text-base border-b border-slate-800 pb-2">📅 7-Day Actions Schedule Preview</h3>
-                  <div className="flex flex-col gap-3">
-                    {sprint.dailyActions.map((day) => (
-                      <div key={day.day} className="flex gap-3 text-xs bg-slate-950/20 p-3 rounded-lg border border-slate-900">
-                        <span className="font-bold text-indigo-400 shrink-0">Day {day.day}:</span>
-                        <div>
-                          <span className="font-semibold text-slate-200 block">{day.objective}</span>
-                          <span className="text-slate-400">{day.actions.join(", ")}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
                 </div>
               </section>
             )}
@@ -890,17 +952,14 @@ export default function Home() {
                 <p className="text-slate-400 text-xs leading-relaxed max-w-xl">{activeSprint.hypothesis}</p>
               </div>
 
-              {/* Progress Display */}
               <div className="shrink-0 flex flex-col items-center">
                 <div className="text-3xl font-black text-gradient">{calculateSprintProgress()}%</div>
                 <div className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">{profile.language === "ru" ? "Выполнено" : "Progress"}</div>
               </div>
             </div>
 
-            {/* Daily Tracker & Details Workspace */}
+            {/* Daily Tracker & Details */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              
-              {/* Left Column: Days Navigation */}
               <div className="flex flex-col gap-2.5">
                 <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider px-1">
                   {profile.language === "ru" ? "Дни спринта" : "Sprint Days"}
@@ -908,7 +967,6 @@ export default function Home() {
                 <div className="grid grid-cols-7 md:flex md:flex-col gap-1.5">
                   {activeSprint.dailyActions.map((day) => {
                     const isSelected = selectedDayTab === day.day;
-                    // Check if day is completed (all checkboxes on this day checked)
                     let totalActions = day.actions.length;
                     let checkedCount = 0;
                     day.actions.forEach((_, idx) => {
@@ -937,7 +995,6 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Right Columns: Tasks and Checklist Details */}
               <div className="md:col-span-2 flex flex-col gap-5">
                 {activeSprint.dailyActions
                   .filter((day) => day.day === selectedDayTab)
@@ -952,15 +1009,11 @@ export default function Home() {
                       </div>
 
                       <div className="text-xs text-slate-400 bg-slate-950/30 p-3 rounded-lg border border-slate-900/80">
-                        <span className="font-semibold text-slate-300 block mb-0.5">Expected Output / Ожидаемый результат:</span>
+                        <span className="font-semibold text-slate-300 block mb-0.5">Expected Output:</span>
                         {day.expectedOutput}
                       </div>
 
                       <div className="flex flex-col gap-2.5">
-                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                          {profile.language === "ru" ? "Задачи на день (Checklist):" : "Daily Actions:"}
-                        </span>
-                        
                         {day.actions.map((action, idx) => {
                           const isChecked = !!checkedActions[`${day.day}-${idx}`];
                           return (
@@ -986,10 +1039,9 @@ export default function Home() {
                     </div>
                   ))}
               </div>
-
             </div>
 
-            {/* Outreach scripts area for quick access during execution */}
+            {/* Outreach scripts */}
             <div className="flex flex-col gap-4">
               <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider px-1">
                 {profile.language === "ru" ? "✉️ Быстрый доступ к скриптам аутрича" : "✉️ Outreach Script Templates"}
@@ -1017,7 +1069,7 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Call to complete review */}
+            {/* Complete Sprint Action */}
             <div className="glass-card p-6 border-indigo-500/20 bg-indigo-950/5 flex flex-col md:flex-row justify-between items-center gap-4">
               <div>
                 <h3 className="text-lg font-bold text-white mb-1">
@@ -1041,11 +1093,9 @@ export default function Home() {
               </button>
             </div>
 
-            {/* WEEKLY REVIEW DISPLAY CARD (if review has been generated) */}
+            {/* Weekly review screen */}
             {weeklyReview && (
-              <section className="glass-card p-6 md:p-8 slide-up border-emerald-500/20 bg-emerald-950/5 flex flex-col gap-6" id="weekly-review-report">
-                
-                {/* Review Header */}
+              <section className="glass-card p-6 md:p-8 slide-up border-emerald-500/20 bg-emerald-950/5 flex flex-col gap-6">
                 <div className="flex justify-between items-start gap-4 border-b border-slate-800 pb-4">
                   <div>
                     <span className="text-xs font-semibold px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 uppercase tracking-wider mb-2 inline-block">
@@ -1055,228 +1105,287 @@ export default function Home() {
                       {profile.language === "ru" ? "Анализ эффективности воронки продаж" : "Pipeline Funnel Review"}
                     </h3>
                   </div>
-                  
-                  <button
-                    onClick={handleExportReviewMarkdown}
-                    className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white bg-slate-900 border border-slate-800/80 px-3 py-1.5 rounded-lg cursor-pointer transition-colors"
-                  >
-                    <Download size={14} />
-                    {profile.language === "ru" ? "Экспорт в Markdown" : "Export Report"}
+                  <button onClick={handleExportReviewMarkdown} className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white bg-slate-900 border border-slate-800/80 px-3 py-1.5 rounded-lg cursor-pointer">
+                    <Download size={14} /> {profile.language === "ru" ? "Экспорт отчета" : "Export Report"}
                   </button>
                 </div>
 
-                {/* Bottleneck indicator display */}
                 <div className="flex flex-col md:flex-row gap-5 items-center bg-slate-950/40 p-5 rounded-2xl border border-slate-900">
                   <div className="flex flex-col items-center justify-center p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 shrink-0 w-44">
                     <AlertTriangle size={32} className="pulse-light mb-1" />
                     <span className="text-[10px] uppercase font-bold tracking-wider text-rose-500">{profile.language === "ru" ? "Бутылочное горлышко" : "Bottleneck"}</span>
-                    <span className="text-base font-black uppercase text-white mt-1 tracking-tight">
-                      {weeklyReview.bottleneck}
-                    </span>
+                    <span className="text-base font-black uppercase text-white mt-1">{weeklyReview.bottleneck}</span>
                   </div>
-
                   <div className="flex-1">
                     <h4 className="font-bold text-white text-base mb-1.5">{profile.language === "ru" ? "ИИ-оценка воронки:" : "AI Evaluation:"}</h4>
                     <p className="text-slate-300 text-xs leading-relaxed">{weeklyReview.summary}</p>
                   </div>
                 </div>
 
-                {/* Evidence and Data logs */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
                   <div className="bg-slate-950/20 p-4 rounded-xl border border-slate-900">
-                    <span className="font-bold text-slate-300 block mb-2">{profile.language === "ru" ? "Доказательства по метрикам:" : "Evidence & Ratios:"}</span>
-                    <ul className="list-disc list-inside space-y-1.5 text-slate-400 leading-relaxed">
-                      {weeklyReview.evidence.map((ev, i) => (
-                        <li key={i}>{ev}</li>
-                      ))}
+                    <span className="font-bold text-slate-300 block mb-2">Evidence & Ratios:</span>
+                    <ul className="list-disc list-inside space-y-1.5 text-slate-400">
+                      {weeklyReview.evidence.map((ev, i) => <li key={i}>{ev}</li>)}
                     </ul>
                   </div>
-
                   <div className="bg-slate-950/20 p-4 rounded-xl border border-slate-900">
-                    <span className="font-bold text-slate-300 block mb-2">{profile.language === "ru" ? "Главная рекомендация:" : "Actionable Recommendation:"}</span>
-                    <p className="text-slate-400 leading-relaxed italic border-l-2 border-emerald-500/40 pl-3">
-                      "{weeklyReview.recommendation}"
-                    </p>
+                    <span className="font-bold text-slate-300 block mb-2">Recommendation:</span>
+                    <p className="text-slate-400 leading-relaxed italic border-l-2 border-emerald-500/40 pl-3">"{weeklyReview.recommendation}"</p>
                   </div>
                 </div>
-
-                {/* Bullet details */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-slate-400">
-                  <div className="bg-slate-950/20 p-4 rounded-xl border border-slate-900">
-                    <span className="font-bold text-slate-300 block mb-1">{profile.language === "ru" ? "Что сработало хорошо:" : "What worked well:"}</span>
-                    <ul className="list-disc list-inside space-y-1">
-                      {weeklyReview.whatWorked.map((w, i) => (
-                        <li key={i}>{w}</li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  <div className="bg-slate-950/20 p-4 rounded-xl border border-slate-900">
-                    <span className="font-bold text-slate-300 block mb-1">{profile.language === "ru" ? "Что пошло не так:" : "What went wrong:"}</span>
-                    <ul className="list-disc list-inside space-y-1">
-                      {weeklyReview.whatDidNotWork.map((d, i) => (
-                        <li key={i}>{d}</li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-
-                {/* Recommendation grids */}
-                <div className="bg-indigo-950/5 border border-indigo-500/10 p-5 rounded-2xl flex flex-col gap-4 text-xs text-slate-300">
-                  <h4 className="font-bold text-white text-sm flex items-center gap-1.5">
-                    <TrendingUp size={14} className="text-indigo-400" />
-                    {profile.language === "ru" ? "🔄 Сценарий следующего спринта" : "🔄 Adjustments for the Next Sprint"}
-                  </h4>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="p-3 bg-slate-950/20 rounded-lg border border-slate-900">
-                      <span className="font-bold text-emerald-400 block mb-1 uppercase tracking-wider text-[10px]">Keep (Оставить):</span>
-                      <ul className="list-disc list-inside space-y-0.5 text-slate-400">
-                        {weeklyReview.nextSprint.keep.map((k, i) => (
-                          <li key={i}>{k}</li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    <div className="p-3 bg-slate-950/20 rounded-lg border border-slate-900">
-                      <span className="font-bold text-amber-400 block mb-1 uppercase tracking-wider text-[10px]">Change (Изменить):</span>
-                      <ul className="list-disc list-inside space-y-0.5 text-slate-400">
-                        {weeklyReview.nextSprint.change.map((c, i) => (
-                          <li key={i}>{c}</li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    <div className="p-3 bg-slate-950/20 rounded-lg border border-slate-900">
-                      <span className="font-bold text-indigo-400 block mb-1 uppercase tracking-wider text-[10px]">Test (Протестировать):</span>
-                      <ul className="list-disc list-inside space-y-0.5 text-slate-400">
-                        {weeklyReview.nextSprint.test.map((t, i) => (
-                          <li key={i}>{t}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-
               </section>
             )}
-            
+          </section>
+        )}
+
+        {/* TAB 3: PLAYBOOK LIBRARY */}
+        {activeTab === "library" && (
+          <section className="slide-up">
+            <header className="mb-8">
+              <h2 className="text-2xl font-black text-white mb-2">
+                {profile.language === "ru" ? "📖 Библиотека проверенных B2B сценариев" : "📖 Verified Playbook Registry"}
+              </h2>
+              <p className="text-slate-400 text-sm">
+                {profile.language === "ru" 
+                  ? "Выберите готовый сценарий для быстрого старта. Вы перейдете сразу к настройке оффера, минуя форму профиля."
+                  : "Browse community playbooks and start a sprint directly, skipping profile generation."}
+              </p>
+            </header>
+
+            {/* Search & Filter Bar */}
+            <div className="flex flex-col md:flex-row gap-4 mb-6">
+              {/* Search */}
+              <div className="flex-1 relative">
+                <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder={profile.language === "ru" ? "Поиск по названию, боли или нише..." : "Search playbooks..."}
+                  className="glass-input pl-10 w-full text-sm"
+                />
+              </div>
+
+              {/* Category selector */}
+              <select
+                value={selectedCategoryFilter}
+                onChange={(e) => setSelectedCategoryFilter(e.target.value)}
+                className="glass-input text-sm md:w-56"
+              >
+                <option value="all">{profile.language === "ru" ? "Все категории" : "All Categories"}</option>
+                <option value="diagnostic_offer">Diagnostic Offer</option>
+                <option value="productized_service">Productized Service</option>
+                <option value="implementation_service">Implementation Service</option>
+                <option value="consulting">Consulting</option>
+                <option value="local_business">Local Business</option>
+              </select>
+            </div>
+
+            {/* Playbooks list grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-10">
+              {filteredPlaybooks.length === 0 ? (
+                <div className="md:col-span-2 text-center py-10 glass-card text-slate-500 text-sm">
+                  {profile.language === "ru" ? "Ничего не найдено" : "No playbooks match your filters"}
+                </div>
+              ) : (
+                filteredPlaybooks.map((pb) => (
+                  <div key={pb.id} className="glass-card p-5 flex flex-col gap-3.5 relative justify-between">
+                    <div>
+                      <div className="flex justify-between items-start gap-2">
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 uppercase tracking-wider">
+                          {pb.category.replace("_", " ")}
+                        </span>
+                        <span className="text-[10px] text-slate-500 font-mono">v{pb.version}</span>
+                      </div>
+                      
+                      <h3 className="text-lg font-bold text-white mt-2 mb-1.5">{pb.name}</h3>
+                      <p className="text-slate-400 text-xs leading-relaxed line-clamp-2 mb-2">{pb.summary}</p>
+                      
+                      <div className="flex flex-wrap gap-1.5 my-2">
+                        {pb.bestFor.slice(0, 3).map((bf, i) => (
+                          <span key={i} className="text-[10px] bg-slate-800/60 border border-slate-700/50 px-2 py-0.5 rounded text-slate-300">
+                            {bf}
+                          </span>
+                        ))}
+                      </div>
+
+                      <div className="text-xs text-slate-500 mt-2 flex flex-col gap-1 border-t border-slate-900 pt-2">
+                        <p><span className="font-semibold text-slate-400">Target:</span> {pb.targetCustomers.join(", ")}</p>
+                        <p><span className="font-semibold text-slate-400">Price Range:</span> {pb.priceRange.min}-{pb.priceRange.max} {pb.priceRange.currency}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2.5 mt-3">
+                      <button
+                        onClick={() => setDetailPlaybook(pb)}
+                        className="flex-1 bg-slate-900 border border-slate-800 text-slate-300 hover:text-white font-bold text-xs py-2 rounded-lg cursor-pointer transition-all text-center"
+                      >
+                        {profile.language === "ru" ? "Детали" : "View Details"}
+                      </button>
+                      <button
+                        onClick={() => handleUsePlaybookDirectly(pb)}
+                        className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs py-2 rounded-lg cursor-pointer transition-all text-center shadow hover:shadow-indigo-500/10"
+                      >
+                        {profile.language === "ru" ? "Использовать" : "Use Playbook"}
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </section>
         )}
 
       </div>
 
-      {/* METRICS MODAL */}
-      {showMetricsModal && (
+      {/* PLAYBOOK DETAIL MODAL */}
+      {detailPlaybook && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-40 flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl max-w-lg w-full flex flex-col gap-4 shadow-2xl slide-up max-h-[90vh] overflow-y-auto">
+          <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl max-w-2xl w-full flex flex-col gap-4 shadow-2xl slide-up max-h-[90vh] overflow-y-auto">
             
             <div className="flex justify-between items-center border-b border-slate-800 pb-2">
-              <h3 className="font-bold text-white text-lg flex items-center gap-2">
-                <BarChart2 size={18} className="text-indigo-400" />
-                {profile.language === "ru" ? "Завершение спринта и ввод метрик" : "Log Sprint Metrics"}
-              </h3>
+              <div>
+                <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider">{detailPlaybook.category}</span>
+                <h3 className="font-bold text-white text-lg">{detailPlaybook.name}</h3>
+              </div>
               <button
-                onClick={() => setShowMetricsModal(false)}
-                className="text-slate-400 hover:text-white transition-colors cursor-pointer"
+                onClick={() => setDetailPlaybook(null)}
+                className="text-slate-400 hover:text-white transition-colors cursor-pointer text-lg font-bold"
               >
                 ✕
               </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 text-xs">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-slate-400 font-semibold">Prospects Listed / Найдено контактов</label>
-                <input
-                  type="number"
-                  value={metrics.prospectsListed}
-                  onChange={(e) => setMetrics({ ...metrics, prospectsListed: Number(e.target.value) })}
-                  className="glass-input text-xs"
-                />
+            <div className="flex flex-col gap-4 text-xs text-slate-300">
+              <p className="italic text-slate-400">"{detailPlaybook.summary}"</p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-slate-950/20 p-3 rounded-lg border border-slate-900">
+                  <span className="font-bold text-slate-200 block mb-1">Target Customers:</span>
+                  <p className="text-slate-400">{detailPlaybook.targetCustomers.join(", ")}</p>
+                </div>
+
+                <div className="bg-slate-950/20 p-3 rounded-lg border border-slate-900">
+                  <span className="font-bold text-slate-200 block mb-1">Price Range:</span>
+                  <p className="text-slate-400">
+                    {detailPlaybook.priceRange.min}-{detailPlaybook.priceRange.max} {detailPlaybook.priceRange.currency} 
+                    {detailPlaybook.priceRange.note && ` (${detailPlaybook.priceRange.note})`}
+                  </p>
+                </div>
               </div>
 
-              <div className="flex flex-col gap-1.5">
-                <label className="text-slate-400 font-semibold">Messages Sent / Отправлено писем</label>
-                <input
-                  type="number"
-                  value={metrics.messagesSent}
-                  onChange={(e) => setMetrics({ ...metrics, messagesSent: Number(e.target.value) })}
-                  className="glass-input text-xs"
-                />
+              <div>
+                <span className="font-bold text-slate-200 block mb-1">Painful Problem Solved:</span>
+                <p className="text-slate-400 leading-relaxed">{detailPlaybook.painfulProblem}</p>
               </div>
 
-              <div className="flex flex-col gap-1.5">
-                <label className="text-slate-400 font-semibold">Replies Received / Получено ответов</label>
-                <input
-                  type="number"
-                  value={metrics.replies}
-                  onChange={(e) => setMetrics({ ...metrics, replies: Number(e.target.value) })}
-                  className="glass-input text-xs"
-                />
+              <div>
+                <span className="font-bold text-slate-200 block mb-1">Promised Outcome:</span>
+                <p className="text-slate-400 leading-relaxed">{detailPlaybook.promisedOutcome}</p>
               </div>
 
-              <div className="flex flex-col gap-1.5">
-                <label className="text-slate-400 font-semibold">Calls Booked / Записано на созвон</label>
-                <input
-                  type="number"
-                  value={metrics.callsBooked}
-                  onChange={(e) => setMetrics({ ...metrics, callsBooked: Number(e.target.value) })}
-                  className="glass-input text-xs"
-                />
+              <div className="grid grid-cols-3 gap-2 bg-slate-950/30 p-3 rounded-lg border border-slate-900/60 text-center">
+                <div>
+                  <span className="text-[10px] text-slate-500 block">Startup Cost</span>
+                  <span className="font-bold text-white capitalize">{detailPlaybook.startupCostLevel}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-500 block">Trust Level Needed</span>
+                  <span className="font-bold text-white capitalize">{detailPlaybook.trustRequired}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-500 block">Difficulty</span>
+                  <span className="font-bold text-white capitalize">{detailPlaybook.executionDifficulty}</span>
+                </div>
               </div>
 
-              <div className="flex flex-col gap-1.5">
-                <label className="text-slate-400 font-semibold">Calls Completed / Проведено созвонов</label>
-                <input
-                  type="number"
-                  value={metrics.callsCompleted}
-                  onChange={(e) => setMetrics({ ...metrics, callsCompleted: Number(e.target.value) })}
-                  className="glass-input text-xs"
-                />
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <label className="text-slate-400 font-semibold">Offers Sent / Отправлено КП/офферов</label>
-                <input
-                  type="number"
-                  value={metrics.offersSent}
-                  onChange={(e) => setMetrics({ ...metrics, offersSent: Number(e.target.value) })}
-                  className="glass-input text-xs"
-                />
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <label className="text-slate-400 font-semibold">Payments Received / Оплат</label>
-                <input
-                  type="number"
-                  value={metrics.paymentsReceived}
-                  onChange={(e) => setMetrics({ ...metrics, paymentsReceived: Number(e.target.value) })}
-                  className="glass-input text-xs"
-                />
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <label className="text-slate-400 font-semibold">Revenue Earned / Получено выручки</label>
-                <input
-                  type="number"
-                  value={metrics.revenueAmount}
-                  onChange={(e) => setMetrics({ ...metrics, revenueAmount: Number(e.target.value) })}
-                  className="glass-input text-xs"
-                />
+              {/* 7 Day schedule preview */}
+              <div>
+                <span className="font-bold text-slate-200 block mb-2">7-Day Actions Schedule:</span>
+                <div className="flex flex-col gap-2 max-h-48 overflow-y-auto pr-1">
+                  {detailPlaybook.first7DaySprint.dailyActions.map((day) => (
+                    <div key={day.day} className="flex gap-2.5 p-2 bg-slate-950/20 rounded border border-slate-900 text-[11px]">
+                      <span className="font-bold text-indigo-400">Day {day.day}:</span>
+                      <div>
+                        <span className="font-semibold text-slate-300">{day.objective}</span>
+                        <p className="text-slate-400 mt-0.5">{day.actions.join(", ")}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
 
-            {/* Note text field */}
+            <div className="flex gap-3 mt-2 border-t border-slate-800 pt-3">
+              <button
+                onClick={() => setDetailPlaybook(null)}
+                className="flex-1 bg-slate-950 hover:bg-slate-800 text-slate-400 hover:text-white font-bold text-sm py-2.5 rounded-xl cursor-pointer transition-colors border border-slate-850"
+              >
+                {profile.language === "ru" ? "Закрыть" : "Close"}
+              </button>
+              <button
+                onClick={() => handleUsePlaybookDirectly(detailPlaybook)}
+                className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm py-2.5 rounded-xl cursor-pointer transition-all glow-border"
+              >
+                {profile.language === "ru" ? "Запустить этот сценарий" : "Use this Playbook"}
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* METRICS MODAL */}
+      {showMetricsModal && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-40 flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl max-w-lg w-full flex flex-col gap-4 shadow-2xl slide-up max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center border-b border-slate-800 pb-2">
+              <h3 className="font-bold text-white text-lg flex items-center gap-2">
+                <BarChart2 size={18} className="text-indigo-400" />
+                {profile.language === "ru" ? "Завершение спринта и ввод метрик" : "Log Sprint Metrics"}
+              </h3>
+              <button onClick={() => setShowMetricsModal(false)} className="text-slate-400 hover:text-white transition-colors cursor-pointer">✕</button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 text-xs">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-slate-400 font-semibold">Prospects Listed</label>
+                <input type="number" value={metrics.prospectsListed} onChange={(e) => setMetrics({ ...metrics, prospectsListed: Number(e.target.value) })} className="glass-input text-xs" />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-slate-400 font-semibold">Messages Sent</label>
+                <input type="number" value={metrics.messagesSent} onChange={(e) => setMetrics({ ...metrics, messagesSent: Number(e.target.value) })} className="glass-input text-xs" />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-slate-400 font-semibold">Replies Received</label>
+                <input type="number" value={metrics.replies} onChange={(e) => setMetrics({ ...metrics, replies: Number(e.target.value) })} className="glass-input text-xs" />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-slate-400 font-semibold">Calls Booked</label>
+                <input type="number" value={metrics.callsBooked} onChange={(e) => setMetrics({ ...metrics, callsBooked: Number(e.target.value) })} className="glass-input text-xs" />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-slate-400 font-semibold">Calls Completed</label>
+                <input type="number" value={metrics.callsCompleted} onChange={(e) => setMetrics({ ...metrics, callsCompleted: Number(e.target.value) })} className="glass-input text-xs" />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-slate-400 font-semibold">Offers Sent</label>
+                <input type="number" value={metrics.offersSent} onChange={(e) => setMetrics({ ...metrics, offersSent: Number(e.target.value) })} className="glass-input text-xs" />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-slate-400 font-semibold">Payments Received</label>
+                <input type="number" value={metrics.paymentsReceived} onChange={(e) => setMetrics({ ...metrics, paymentsReceived: Number(e.target.value) })} className="glass-input text-xs" />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-slate-400 font-semibold">Revenue Earned</label>
+                <input type="number" value={metrics.revenueAmount} onChange={(e) => setMetrics({ ...metrics, revenueAmount: Number(e.target.value) })} className="glass-input text-xs" />
+              </div>
+            </div>
+
             <div className="flex flex-col gap-1.5 text-xs">
-              <label className="text-slate-400 font-semibold">
-                Customer Objections & Reflections / Возражения клиентов и заметки
-              </label>
-              <textarea
-                value={userNotes}
-                onChange={(e) => setUserNotes(e.target.value)}
-                placeholder="e.g. Clients were worried about account bans. Or, I spent too much time researching Day 1."
-                className="glass-input text-xs h-20 resize-y"
-              />
+              <label className="text-slate-400 font-semibold">Customer Objections & Notes</label>
+              <textarea value={userNotes} onChange={(e) => setUserNotes(e.target.value)} placeholder="Objections or notes..." className="glass-input text-xs h-20 resize-y" />
             </div>
 
             <button
@@ -1286,7 +1395,6 @@ export default function Home() {
               {profile.language === "ru" ? "Отправить метрики и запустить ИИ-Анализ" : "Submit & Run AI review"}
               <Sparkles size={16} />
             </button>
-
           </div>
         </div>
       )}

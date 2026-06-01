@@ -8,29 +8,27 @@ on:
 
 jobs:
   build:
-    name: Build & Test
+    name: Build, Test & Validate
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v3
-        with:
-          version: 8
-
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 18
-          cache: 'pnpm'
+          cache: 'npm'
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: npm ci
 
       - name: Run lint
-        run: pnpm lint
+        run: npm run lint
 
       - name: Run tests
-        run: pnpm test
+        run: npm run test
+
+      - name: Validate Playbooks
+        run: npm run validate-playbooks

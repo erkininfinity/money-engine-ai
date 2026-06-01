@@ -1,0 +1,113 @@
+# Money Engine AI — Playbook Contribution Template
+# Copy this file, fill it out, and submit it to data/playbooks/your-playbook-name.yaml via Pull Request.
+
+id: unique-lowercase-kebab-case-id # e.g. local-business-lead-response
+name: Title of the Playbook # e.g. Local Business Lead Response Sprint
+version: 1.0.0
+category: productized_service # Choose from: diagnostic_offer, productized_service, implementation_service, consulting, local_business, digital_product, creator_offer, micro_saas_presales
+summary: A 1-2 sentence description of the B2B revenue experiment and its core mechanism.
+
+bestFor:
+  - Skill or role 1 (e.g. AI automation developers)
+  - Skill or role 2
+notFor: # Optional list of exclusions
+  - Complete beginners with no tech background
+
+targetCustomers:
+  - Specific B2B industry or client type 1 (e.g. medical clinics)
+  - Specific B2B industry or client type 2
+
+painfulProblem: Describe the specific painful problem or money leak that the client experiences.
+promisedOutcome: Explain the precise result or deliverable that the client gets (outcome, not just advice).
+
+priceRange:
+  currency: USD # or KZT, EUR, etc.
+  min: 100 # Minimum price
+  max: 500 # Maximum price
+  note: Optional explanation (e.g., base package setup fee)
+
+requiredSkills:
+  - Key technical or business skill 1 (e.g. Zapier / Make.com)
+  - Skill 2
+requiredAssets: # Optional assets
+  - Laptop and messaging account
+
+startupCostLevel: none # Choose from: none, low, medium, high
+trustRequired: low # Choose from: low, medium, high
+speedToFirstRevenue: fast # Choose from: fast, medium, slow
+executionDifficulty: low # Choose from: low, medium, high
+
+firstChannels:
+  - Primary ethical channel (e.g. manual Instagram DM audit outreach)
+  - Secondary channel (e.g. local business meetups)
+
+firstOffer:
+  name: Catchy Name of the offer # e.g., 24-Hour Express Auto-Reply Fix
+  promise: Specific promise statement of value (formula)
+  deliverables:
+    - What is delivered 1
+    - What is delivered 2
+  exclusions:
+    - What is excluded 1 (e.g. software license costs)
+  callToAction: Clear call to action to trigger contact (e.g. let me run a free speed test)
+
+first7DaySprint:
+  goal: Primary objective of the 7-day experiment (e.g. secure 1 paid client)
+  dailyActions:
+    - day: 1
+      objective: Day 1 Objective (e.g., Prospecting & Research)
+      actions:
+        - Specific task 1 (e.g. find 15 clinics on Google Maps)
+        - Specific task 2
+    - day: 2
+      objective: Day 2 Objective
+      actions:
+        - Specific task 1
+    - day: 3
+      objective: Day 3 Objective
+      actions:
+        - Specific task 1
+    - day: 4
+      objective: Day 4 Objective
+      actions:
+        - Specific task 1
+    - day: 5
+      objective: Day 5 Objective
+      actions:
+        - Specific task 1
+    - day: 6
+      objective: Day 6 Objective
+      actions:
+        - Specific task 1
+    - day: 7
+      objective: Day 7 Objective (e.g. Weekly Review & Retrospective)
+      actions:
+        - Specific task 1
+
+metrics:
+  - prospects_listed
+  - messages_sent
+  - replies
+  - calls_booked
+  - calls_completed
+  - offers_sent
+  - payments_received
+
+risks:
+  - Main operational or technical risk 1 (e.g. WhatsApp number block)
+  - Risk 2
+
+antiPatterns:
+  - What NOT to do (e.g. promising guaranteed sales, spamming 100 cold emails)
+  - Anti-pattern 2
+
+improvements:
+  - How to upscale this later (e.g. upsell a monthly support retainer)
+  - Improvement 2
+
+exampleMessages:
+  - "Hi [Name], I noticed your contact form has a slow response time..."
+
+reviewQuestions:
+  - Question 1 to ask yourself on Day 7 (e.g., did clients object to the price?)
+  - Question 2

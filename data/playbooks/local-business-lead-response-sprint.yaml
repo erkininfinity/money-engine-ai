@@ -53,12 +53,14 @@ first7DaySprint:
     - day: 2
       objective: Run a live speed-test (mystery contact)
       actions:
-        - Message all 20 businesses asking: "Hi, do you have slots open for this week?"
+        - >
+          Message all 20 businesses asking: "Hi, do you have slots open for this week?"
         - Track response times down to the minute.
     - day: 3
       objective: Outreach with speed-test details
       actions:
-        - Message them back: "Thanks! I noticed it took [X] hours to reply. Let me show you how to automate this WhatsApp reply so you don't lose leads."
+        - >
+          Message them back: "Thanks! I noticed it took [X] hours to reply. Let me show you how to automate this WhatsApp reply so you don't lose leads."
     - day: 4
       objective: Follow-up and invite to call
       actions:
