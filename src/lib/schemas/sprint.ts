@@ -41,6 +41,7 @@ export const sprintMetricsSchema = z.object({
 });
 
 export const sprintSchema = z.object({
+  id: z.string().optional(),
   title: z.string(),
   goal: z.string(),
   hypothesis: z.string(),
