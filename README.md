@@ -1,36 +1,125 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Money Engine AI
 
-## Getting Started
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Next.js](https://img.shields.io/badge/Next.js-14+-black.svg)](https://nextjs.org/)
+[![SQLite](https://img.shields.io/badge/Database-SQLite-blue.svg)](https://sqlite.org/)
 
-First, run the development server:
+**Turn your skills into a testable B2B offer. Run a 7-day revenue sprint. Learn what works. Repeat.**
 
+**Собери оффер. Найди первых клиентов. Запусти 7-дневный revenue sprint. Улучши следующий шаг.**
+
+---
+
+## 🚀 Что такое Money Engine AI?
+
+**Money Engine AI** — это open-source pre-CRM система для запуска первого B2B-дохода, созданная для соло-фаундеров, фрилансеров, разработчиков и AI-специалистов. 
+
+В отличие от традиционных бизнес-симуляторов или сложных CRM-систем, Money Engine AI помогает преодолеть разрыв между вашими навыками и первыми реальными продажами. Программа генерирует не абстрактные бизнес-планы, а конкретные пошаговые 7-дневные спринты с этичными сценариями продаж.
+
+### 🎯 Основной Core Loop:
+1. **Профиль основателя:** Вы вводите свои навыки, опыт, доступные часы и уровень комфорта в продажах.
+2. **Revenue Path:** Система предлагает 3–5 оптимальных путей B2B-услуг (например, *AI Automation Audit*, *Revenue Leak Audit*).
+3. **Offer Builder:** Формируется конкретное предложение по формуле боли и результата.
+4. **Outreach & Sprint:** Вы получаете детальный план действий на 7 дней и шаблоны персональных (не спам!) сообщений.
+5. **Metrics & Review:** Вы вносите результаты недели, а локальный ИИ анализирует бутылочное горлышко (проблема в оффере, канале или продажах) и рекомендует следующий шаг.
+
+---
+
+## 🛠️ Быстрый старт (Quick Start)
+
+Money Engine AI разработан как локальное (local-first) приложение, обеспечивающее полную конфиденциальность ваших бизнес-данных.
+
+### Требования
+- Node.js 18.x или выше
+- pnpm (рекомендуется) или npm
+
+### Локальный запуск
+1. Клонируйте репозиторий:
+   ```bash
+   git clone https://github.com/erkininfinity/money-engine-ai.git
+   cd money-engine-ai
+   ```
+
+2. Установите зависимости:
+   ```bash
+   npm install
+   ```
+
+3. Настройте переменные окружения:
+   Скопируйте шаблон `.env.example` в `.env.local` и укажите ваш API-ключ для OpenAI или любого OpenAI-совместимого провайдера (например, OpenRouter, Local LLM):
+   ```bash
+   cp .env.example .env.local
+   ```
+
+4. Запустите базу данных (миграции SQLite выполнятся автоматически):
+   ```bash
+   npm run db:push
+   ```
+
+5. Запустите сервер разработки:
+   ```bash
+   npm run dev
+   ```
+   Откройте [http://localhost:3000](http://localhost:3000) in browser.
+
+---
+
+## 🐳 Запуск через Docker Compose
+
+Для быстрого развертывания в Docker-контейнере выполните:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+docker-compose up --build
 ```
+Приложение будет доступно по адресу [http://localhost:3000](http://localhost:3000).
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 🛡️ Этические принципы (Ethics & Anti-Spam)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Money Engine AI придерживается строгих этических стандартов:
+- **Никакого автоматического спама:** Мы не поддерживаем массовую холодную рассылку. Все скрипты ориентированы на личное ручное общение (warm outreach, referrals, экспертные посты).
+- **Никаких фейковых отзывов:** Мы не генерируем искусственные кейсы или социальное доказательство.
+- **Никаких гарантий дохода:** Продукт помогает проводить честные эксперименты, а не обещает «быстрые деньги».
 
-## Learn More
+Подробнее читайте в [docs/ethics.md](file:///d:/Erkin/1 My Projects/1 New/Money Engine AI/docs/ethics.md).
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🔒 Конфиденциальность (Privacy & Local-First)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Ваш бизнес — это ваши данные. 
+- Все профили, контакты, метрики и заметки о клиентах сохраняются в локальной базе данных SQLite на вашем компьютере.
+- Ключи API хранятся исключительно в ваших локальных `.env` файлах.
+- Внешние вызовы к языковым моделям отправляют только обезличенные данные вашего профиля и оффера.
 
-## Deploy on Vercel
+Подробнее в [docs/privacy.md](file:///d:/Erkin/1 My Projects/1 New/Money Engine AI/docs/privacy.md).
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## ⚖️ Ограничения ответственности (Disclaimer)
+
+> [!WARNING]
+> Money Engine AI **не предоставляет** юридические, налоговые, бухгалтерские или финансовые консультации. Все генерируемые рекомендации, цены и юридические аспекты носят исключительно ознакомительный характер. Перед совершением сделок проконсультируйтесь с квалифицированными специалистами в вашей юрисдикции.
+
+---
+
+## 🗺️ Roadmap проекта
+
+- **v0.1.0** — Генератор первого B2B спринта по профилю основателя. Импорт/Экспорт в Markdown.
+- **v0.2.0** — Трекер метрик и еженедельный аналитический AI Review.
+- **v0.3.0** — Открытый реестр сценариев дохода (Playbook Library) с поддержкой PR от сообщества.
+- **v0.4.0** — Легковесное рабочее пространство (Pre-CRM).
+
+Подробный план развития находится в [docs/project-plan.md](file:///d:/Erkin/1 My Projects/1 New/Money Engine AI/docs/project-plan.md).
+
+---
+
+## 🤝 Участие в разработке (Contributing)
+
+Мы будем рады вашим Pull Requests, особенно с новыми плейбуками (Playbooks) для запуска B2B услуг! Пожалуйста, ознакомьтесь с [CONTRIBUTING.md](file:///d:/Erkin/1 My Projects/1 New/Money Engine AI/CONTRIBUTING.md) перед созданием PR.
+
+---
+
+## 📄 Лицензия
+
+Проект распространяется под лицензией **Apache 2.0**. Подробности в файле [LICENSE](file:///d:/Erkin/1 My Projects/1 New/Money Engine AI/LICENSE).

@@ -1,0 +1,102 @@
+id: ai-automation-audit
+name: AI Automation Audit
+version: "1.0.0"
+category: productized_service
+summary: A rapid B2B consulting offer where you analyze a small business's workflows and identify 3-5 high-impact AI or automation opportunities.
+bestFor:
+  - AI Builders
+  - Automation Consultants
+  - No-Code Developers
+targetCustomers:
+  - Small service businesses (clinics, salons, agencies, repair shops)
+painfulProblem: Time lost on manual data entry, slow lead response times, and repetitive client booking or support tasks.
+promisedOutcome: A custom audit showing exactly where leads or time are leaking, with 3 practical, ready-to-implement automation recommendations.
+priceRange:
+  currency: KZT
+  min: 49000
+  max: 99000
+  note: Base price for a single department audit.
+requiredSkills:
+  - Understanding of Make.com / n8n / Zapier
+  - Basic understanding of LLM APIs (OpenAI, Anthropic)
+  - Business workflow analysis
+startupCostLevel: none
+trustRequired: medium
+speedToFirstRevenue: fast
+executionDifficulty: medium
+firstChannels:
+  - Warm outreach to business owners
+  - Local entrepreneur communities
+  - Referral networks
+firstOffer:
+  name: 48-Hour AI Automation Audit
+  promise: Find 3-5 specific processes to automate to save 5+ hours/week or reduce lead leaks.
+  deliverables:
+    - 1-page visual workflow mapping
+    - List of 3-5 automation recipes with tools & costs
+    - 30-minute walkthrough call
+  exclusions:
+    - Implementation of automations
+    - Software licenses / API key costs
+  callToAction: Let me audit one specific process for free to show you how it works.
+first7DaySprint:
+  goal: Secure 1-2 paid audits by running a free diagnostic offer.
+  dailyActions:
+    - day: 1
+      objective: Define offer and list prospects
+      actions:
+        - List 30 local service businesses or agency owners from warm contacts and local groups.
+        - Research their public workflows (booking forms, response time).
+    - day: 2
+      objective: Send personalized warm outreach messages
+      actions:
+        - Send 10 highly-tailored messages offering a free 1-process diagnostic.
+        - Track replies.
+    - day: 3
+      objective: Follow-up and distribute value
+      actions:
+        - Follow up with yesterday's non-replies.
+        - Post a short, practical automation tip on LinkedIn/Telegram.
+    - day: 4
+      objective: Run diagnostic calls
+      actions:
+        - Conduct 2-3 free diagnostic calls (15-20 min each).
+        - Map out their main workflow blocker.
+    - day: 5
+      objective: Deliver diagnostics and offer paid audits
+      actions:
+        - Send the 1-process diagnostic map.
+        - Pitch the full 48-Hour AI Automation Audit for a paid fee.
+    - day: 6
+      objective: Handle objections and follow up
+      actions:
+        - Address questions on tools, pricing, and timelines.
+        - Send a summary email.
+    - day: 7
+      objective: Review sprint metrics and feedback
+      actions:
+        - Calculate conversion rates (replies, booked calls, payments).
+        - Log lessons learned and prepare for the next sprint.
+metrics:
+  - prospects_listed
+  - messages_sent
+  - replies
+  - calls_booked
+  - calls_completed
+  - offers_sent
+  - payments_received
+risks:
+  - Client expecting implementation included in the audit price.
+  - Vague value proposition without a clear ROI for the business owner.
+antiPatterns:
+  - Promising guaranteed revenue increases or cost savings.
+  - Selling complex implementation before diagnosing the process.
+improvements:
+  - Focus on a single specific vertical (e.g., dentist clinics only) to increase trust.
+  - Present a clean before/after schematic.
+exampleMessages:
+  - "Hi [Name], I noticed you have a manual booking form on your website. I do 48-hour audits for local businesses to find where manual entry is wasting time. Could I share 3 simple ways you can automate this form for free?"
+reviewQuestions:
+  - Did the prospect understand what an automation audit is?
+  - Was the time limit of 48 hours respected?
+  - Did they find the free diagnostic process valuable?

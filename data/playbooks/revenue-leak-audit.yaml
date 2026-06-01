@@ -1,0 +1,102 @@
+id: revenue-leak-audit
+name: Revenue Leak Audit
+version: "1.0.0"
+category: diagnostic_offer
+summary: Audit an agency or B2B service business to identify where they are losing leads, failing to follow up, or dropping deals.
+bestFor:
+  - Business Consultants
+  - Sales Operations Specialists
+  - B2B Marketers
+targetCustomers:
+  - Marketing agencies
+  - Design/Development agencies
+  - Consulting firms
+painfulProblem: High marketing spend but low sales conversion. Leads fall through the cracks because sales reps respond late or don't follow up.
+promisedOutcome: A detailed report pointing out 3-5 major pipeline leakages (with evidence) and a step-by-step recovery plan.
+priceRange:
+  currency: KZT
+  min: 49000
+  max: 150000
+  note: Scale depends on pipeline volume and sales team size.
+requiredSkills:
+  - Sales funnel analytics
+  - CRM structure (HubSpot, Pipedrive, etc.)
+  - Customer journey mapping
+startupCostLevel: none
+trustRequired: high
+speedToFirstRevenue: medium
+executionDifficulty: medium
+firstChannels:
+  - Warm agency contacts
+  - Referral partners
+  - Founder mastermind groups
+firstOffer:
+  name: 3-Day Revenue Leak Audit
+  promise: Identify major pipeline holes where leads or proposals are getting stuck or ignored.
+  deliverables:
+    - Custom funnel response-time mystery shop test
+    - Map of the 3 biggest lead drop-off points
+    - Proposal template/process optimization checklist
+  exclusions:
+    - CRM customization or migrations
+    - Live sales training / coaching
+  callToAction: Let me run a quick mystery shopping test on your lead form to check your response speed.
+first7DaySprint:
+  goal: Sign 1-2 agency owners for a pipeline audit.
+  dailyActions:
+    - day: 1
+      objective: Mystery shop target prospects
+      actions:
+        - Identify 15-20 potential agency prospects.
+        - Submit a fake/diagnostic lead to their site to check their response speed and sequence.
+    - day: 2
+      objective: Analyze response speed and draft teaser
+      actions:
+        - Record response times and messages received (or lack thereof).
+        - Prepare a short personalized diagnostic outline (e.g., "Took 18 hours to reply...").
+    - day: 3
+      objective: Reach out with findings
+      actions:
+        - Send a personalized email/message sharing the response-time test results and offering advice.
+    - day: 4
+      objective: Follow-up and publish content
+      actions:
+        - Follow up with yesterday's leads.
+        - Publish an anonymous case study of a common leak on social media.
+    - day: 5
+      objective: Run diagnostic calls
+      actions:
+        - Conduct calls with interested agency owners. Review their pipeline stages together.
+    - day: 6
+      objective: Present audits and proposals
+      actions:
+        - Deliver the free mini-reports.
+        - Present the full 3-Day Revenue Leak Audit proposal.
+    - day: 7
+      objective: Review sprint metrics and feedback
+      actions:
+        - Track metrics (mysteries conducted, replies, bookings, sales).
+        - Plan adjustments to the mystery test script.
+metrics:
+  - prospects_listed
+  - messages_sent
+  - replies
+  - calls_booked
+  - calls_completed
+  - offers_sent
+  - payments_received
+risks:
+  - Prospects getting defensive about their sales team's performance.
+  - Harder to audit without temporary CRM access.
+antiPatterns:
+  - Pointing out flaws aggressively without showing constructive solutions.
+  - Making assumptions about their conversion rates without data.
+improvements:
+  - Share a benchmark report of their competitors' response speeds.
+  - Provide immediate template scripts to patch the first leak.
+exampleMessages:
+  - "Hi [Name], I mystery-shopped your contact form yesterday to test response times. It took [X] hours to get a response, which is normal but leaves room for competitors. I have 2 quick fixes for this; mind if I send over a 1-page summary?"
+reviewQuestions:
+  - How did the prospect react to the mystery shop?
+  - Was the leak data clear and objective?
+  - Did we require CRM credentials? (Keep it external if possible).

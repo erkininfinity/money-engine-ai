@@ -1,0 +1,28 @@
+{
+  "location": "Astana, Kazakhstan",
+  "language": "ru",
+  "targetMonthlyIncome": 300000,
+  "skills": [
+    "Make.com / Integromat automation",
+    "Zapier integration",
+    "n8n workflows",
+    "Basic OpenAI API knowledge",
+    "Customer service management"
+  ],
+  "pastExperience": [
+    "1 year as customer service lead at local online store",
+    "No-code enthusiast, built several workflows for personal use"
+  ],
+  "availableHoursPerWeek": 12,
+  "startupBudgetLevel": "low",
+  "audienceAccess": [
+    "Warm contacts of 10 local service owners",
+    "Astana Entrepreneur Telegram Group (200 members)"
+  ],
+  "salesComfortLevel": "medium",
+  "preferredWorkType": "automation",
+  "constraints": [
+    "Cannot work during 9-5 working hours",
+    "No large upfront budget for paid software licenses"
+  ]
+}

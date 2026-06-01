@@ -1,0 +1,104 @@
+id: local-business-lead-response-sprint
+name: Local Business Lead Response Sprint
+version: "1.0.0"
+category: implementation_service
+summary: Improve response speeds for local businesses (clinics, salons, auto services) using simple integrations, auto-replies, and WhatsApp templates.
+bestFor:
+  - Automation Specialists
+  - CRM Builders
+  - Local Consultants
+targetCustomers:
+  - Salons and Spas
+  - Medical Clinics
+  - Auto Repair Shops
+  - Local Training Centers
+painfulProblem: Customers contact the business via Instagram/WhatsApp/Website, but the admin responds hours later. Customers go to competitors who respond instantly.
+promisedOutcome: Set up an auto-response system that triggers within 5 minutes, connects leads to WhatsApp, and templates 80% of admin replies.
+priceRange:
+  currency: KZT
+  min: 99000
+  max: 250000
+  note: Scale depends on the number of channels integrated.
+requiredSkills:
+  - Basic no-code (Make.com, n8n, or Zapier)
+  - Messaging APIs (WhatsApp Business, Instagram DM)
+  - Customer communication drafting
+startupCostLevel: low
+trustRequired: medium
+speedToFirstRevenue: fast
+executionDifficulty: low
+firstChannels:
+  - WhatsApp/Telegram local business directories
+  - Warm local owner referrals
+  - Walk-in diagnostic visits
+firstOffer:
+  name: 7-Day Lead Response Fix
+  promise: Guarantee that website/social leads receive an automated WhatsApp follow-up in under 5 minutes.
+  deliverables:
+    - 1 instant webhook integration (Instagram/Web to WhatsApp)
+    - WhatsApp Business auto-reply setup
+    - 5 pre-written quick reply templates for the admin
+  exclusions:
+    - Custom bot dialogs (AI chats)
+    - Migration of customer databases
+  callToAction: Let me test your current response time. If it's over 10 minutes, I'll show you how to automate it in 1 day.
+first7DaySprint:
+  goal: Secure 1 paid setup client by demonstrating response lag.
+  dailyActions:
+    - day: 1
+      objective: Compile a list of 20 local businesses
+      actions:
+        - Research 20 local service businesses in your city with active social pages or ads.
+        - Log their contact methods.
+    - day: 2
+      objective: Run a live speed-test (mystery contact)
+      actions:
+        - Message all 20 businesses asking: "Hi, do you have slots open for this week?"
+        - Track response times down to the minute.
+    - day: 3
+      objective: Outreach with speed-test details
+      actions:
+        - Message them back: "Thanks! I noticed it took [X] hours to reply. Let me show you how to automate this WhatsApp reply so you don't lose leads."
+    - day: 4
+      objective: Follow-up and invite to call
+      actions:
+        - Follow up with yesterday's leads.
+        - Send a Loom video or screenshot of a sample 1-day auto-response setup.
+    - day: 5
+      objective: Conduct alignment calls
+      actions:
+        - Run calls showing a quick demo of Make.com to WhatsApp auto-responses.
+        - Quote the fixed-price 7-Day Fix package.
+    - day: 6
+      objective: Contract and set up project
+      actions:
+        - Close the client, receive payment, and get access to their social/messaging page.
+        - Map their basic booking flow.
+    - day: 7
+      objective: Review sprint metrics and feedback
+      actions:
+        - Log conversion rates.
+        - Set up the next sprint tasks to deliver the integration.
+metrics:
+  - prospects_listed
+  - messages_sent
+  - replies
+  - calls_booked
+  - calls_completed
+  - offers_sent
+  - payments_received
+risks:
+  - Tech friction with Meta API approvals.
+  - Client expecting a full-blown AI chat assistant instead of auto-routing.
+antiPatterns:
+  - Building long, complicated AI chat trees that confuse local clients.
+  - Using unofficial messaging wrappers that risk number blocking.
+improvements:
+  - Suggest setting up WhatsApp catalog features.
+  - Focus on routing users straight to a booking link (Calendly/Yclients).
+exampleMessages:
+  - "Hello! I tested your response time on Instagram and it took [X] minutes. We help local services set up instant WhatsApp routing to get customers booked 10x faster. Can I send a quick screenshot of how it works?"
+reviewQuestions:
+  - How long did the average business take to reply?
+  - What blocker did the client mention? (Pricing, complexity, or trust?)
+  - Did the WhatsApp setup go smoothly?
