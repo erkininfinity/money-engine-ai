@@ -8,6 +8,7 @@ import { OfferDraft } from "@/lib/schemas/offer";
 import { RevenueSprint, SprintMetrics } from "@/lib/schemas/sprint";
 import { WeeklyReview } from "@/lib/schemas/review";
 import { playbookCategorySchema, RevenuePlaybook } from "@/lib/schemas/playbook";
+import { generateICS } from "@/lib/exporters/calendar";
 import { 
   ArrowRight, 
   ArrowLeft, 
@@ -29,7 +30,10 @@ import {
   BookOpen,
   Search,
   Check,
-  CheckSquare as CheckedIcon
+  CheckSquare as CheckedIcon,
+  Calendar,
+  Send,
+  Flame
 } from "lucide-react";
 
 // Default Profile state
@@ -121,6 +125,12 @@ export default function Home() {
   const [newProspectContact, setNewProspectContact] = useState("");
   const [newProspectStatus, setNewProspectStatus] = useState<string>("identified");
   const [newProspectNotes, setNewProspectNotes] = useState("");
+
+  // Integrations & Gamification state
+  const [webhookUrl, setWebhookUrl] = useState<string>("");
+  const [streakCount, setStreakCount] = useState<number>(0);
+  const [completedDays, setCompletedDays] = useState<string[]>([]);
+  const [showStreakFlame, setShowStreakFlame] = useState<boolean>(false);
 
   // Load projects from DB
   const fetchProjects = async () => {
@@ -445,6 +455,24 @@ export default function Home() {
     if (savedReview) {
       try { setWeeklyReview(JSON.parse(savedReview)); } catch (e) { console.error(e); }
     }
+
+    // Webhook Url
+    const savedWebhook = localStorage.getItem("money_engine_webhook_url");
+    if (savedWebhook) {
+      setWebhookUrl(savedWebhook);
+    }
+
+    // Streak Count
+    const savedStreak = localStorage.getItem("money_engine_streak_count");
+    if (savedStreak) {
+      setStreakCount(parseInt(savedStreak, 10) || 0);
+    }
+
+    // Completed Days
+    const savedCompletedDays = localStorage.getItem("money_engine_completed_days");
+    if (savedCompletedDays) {
+      try { setCompletedDays(JSON.parse(savedCompletedDays)); } catch (e) { console.error(e); }
+    }
   }, []);
 
   // Fetch Playbook Library on mount
@@ -650,11 +678,103 @@ export default function Home() {
     setActiveTab("active_sprint");
   };
 
+  const updateStreakStatus = (newChecked: Record<string, boolean>, currentSprint: RevenueSprint | null) => {
+    if (!currentSprint) return;
+    
+    let newCompletedDays = [...completedDays];
+    let newStreak = streakCount;
+    let triggeredAnimation = false;
+
+    currentSprint.dailyActions.forEach((day) => {
+      const dayKey = `${currentSprint.id || "sprint"}-${day.day}`;
+      const allDone = day.actions.length > 0 && day.actions.every((_, idx) => newChecked[`${day.day}-${idx}`]);
+      const alreadyCompleted = newCompletedDays.includes(dayKey);
+
+      if (allDone && !alreadyCompleted) {
+        newCompletedDays.push(dayKey);
+        newStreak += 1;
+        triggeredAnimation = true;
+      } else if (!allDone && alreadyCompleted) {
+        newCompletedDays = newCompletedDays.filter(k => k !== dayKey);
+        newStreak = Math.max(0, newStreak - 1);
+      }
+    });
+
+    if (newStreak !== streakCount) {
+      setStreakCount(newStreak);
+      localStorage.setItem("money_engine_streak_count", String(newStreak));
+    }
+    
+    if (JSON.stringify(newCompletedDays) !== JSON.stringify(completedDays)) {
+      setCompletedDays(newCompletedDays);
+      localStorage.setItem("money_engine_completed_days", JSON.stringify(newCompletedDays));
+    }
+
+    if (triggeredAnimation) {
+      setShowStreakFlame(true);
+      setTimeout(() => setShowStreakFlame(false), 4000);
+    }
+  };
+
   const handleActionToggle = (day: number, actionIdx: number) => {
     const key = `${day}-${actionIdx}`;
     const newChecked = { ...checkedActions, [key]: !checkedActions[key] };
     setCheckedActions(newChecked);
     localStorage.setItem("money_engine_checked_actions", JSON.stringify(newChecked));
+    updateStreakStatus(newChecked, activeSprint);
+  };
+
+  const handleUpdateWebhookUrl = (url: string) => {
+    setWebhookUrl(url);
+    localStorage.setItem("money_engine_webhook_url", url);
+  };
+
+  const handleTriggerWebhook = async () => {
+    if (!activeSprint) return;
+    if (!webhookUrl) {
+      alert(profile.language === "ru" 
+        ? "Пожалуйста, сначала настройте Webhook URL в Рабочей области (Workspace)." 
+        : "Please configure a Webhook URL in the Workspace tab first.");
+      return;
+    }
+
+    const currentDay = activeSprint.dailyActions.find(d => d.day === selectedDayTab);
+    if (!currentDay) return;
+
+    const payload = {
+      sprintId: activeSprint.id,
+      sprintTitle: activeSprint.title,
+      day: currentDay.day,
+      objective: currentDay.objective,
+      expectedOutput: currentDay.expectedOutput,
+      timeEstimateMinutes: currentDay.timeEstimateMinutes,
+      actions: currentDay.actions.map((action, idx) => ({
+        text: action,
+        completed: !!checkedActions[`${currentDay.day}-${idx}`]
+      }))
+    };
+
+    try {
+      const res = await fetch("/api/webhook", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ webhookUrl, payload }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to trigger webhook");
+      }
+
+      alert(profile.language === "ru" 
+        ? "Задачи дня успешно отправлены!" 
+        : "Daily tasks sent successfully!");
+    } catch (e: any) {
+      console.error(e);
+      alert((profile.language === "ru" ? "Ошибка при отправке вебхука: " : "Webhook error: ") + e.message);
+    }
   };
 
   const calculateSprintProgress = () => {
@@ -814,6 +934,23 @@ export default function Home() {
     link.click();
     URL.revokeObjectURL(url);
   };
+  
+  const handleExportCalendar = (targetSprint?: RevenueSprint | null) => {
+    const s = targetSprint || sprint;
+    if (!s) return;
+    try {
+      const icsContent = generateICS(s);
+      const blob = new Blob([icsContent], { type: "text/calendar;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `sprint-schedule-${s.title.replace(/\s+/g, "-").toLowerCase()}.ics`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Failed to export calendar:", error);
+    }
+  };
 
   // Filter playbooks library
   const filteredPlaybooks = playbooks.filter((pb) => {
@@ -848,6 +985,26 @@ export default function Home() {
 
   return (
     <main className="min-h-screen pb-20 px-4 md:px-8">
+      {/* Streak Flame Congratulations Modal / Toast */}
+      {showStreakFlame && (
+        <div className="fixed top-8 right-8 z-50 flex items-center gap-3 bg-slate-900/95 backdrop-blur border border-amber-500/30 p-4 rounded-2xl shadow-2xl shadow-amber-500/10 animate-bounce">
+          <div className="relative">
+            <Flame className="w-10 h-10 text-amber-500 fill-amber-500 animate-pulse" />
+            <div className="absolute inset-0 bg-amber-500/20 rounded-full filter blur animate-ping" />
+          </div>
+          <div>
+            <h4 className="text-sm font-black text-amber-400">
+              {profile.language === "ru" ? "Ударный день! 🔥" : "Streak Day! 🔥"}
+            </h4>
+            <p className="text-xs text-slate-300">
+              {profile.language === "ru" 
+                ? `Вы закрыли все задачи на сегодня! Стрейк: ${streakCount} дн.` 
+                : `You completed all tasks for today! Streak: ${streakCount} days.`}
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Background radial effects */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-96 bg-indigo-500/5 blur-3xl pointer-events-none rounded-full" />
 
@@ -1250,6 +1407,9 @@ export default function Home() {
                     <button onClick={handleExportMarkdown} className="flex items-center gap-1.5 bg-slate-900 border border-slate-800 text-slate-300 font-bold text-sm px-4 py-2 rounded-lg transition-all cursor-pointer">
                       <Download size={16} /> {profile.language === "ru" ? "Экспорт в .md" : "Export .md"}
                     </button>
+                    <button onClick={() => handleExportCalendar(sprint)} className="flex items-center gap-1.5 bg-slate-900 border border-slate-800 text-slate-300 font-bold text-sm px-4 py-2 rounded-lg transition-all cursor-pointer">
+                      <Calendar size={16} /> {profile.language === "ru" ? "Календарь (.ics)" : "Calendar (.ics)"}
+                    </button>
                     <button onClick={handleStartSprint} className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm px-5 py-2 rounded-lg transition-all cursor-pointer glow-border">
                       <Play size={16} /> {profile.language === "ru" ? "Запустить этот спринт!" : "Start this Sprint!"}
                     </button>
@@ -1279,12 +1439,43 @@ export default function Home() {
                   {profile.language === "ru" ? "Активный спринт" : "Active Sprint"}
                 </span>
                 <h2 className="text-2xl font-black text-white mb-1">{activeSprint.title}</h2>
-                <p className="text-slate-400 text-xs leading-relaxed max-w-xl">{activeSprint.hypothesis}</p>
+                <p className="text-slate-400 text-xs leading-relaxed max-w-xl mb-4">{activeSprint.hypothesis}</p>
+                
+                {/* Integrations triggers */}
+                <div className="flex flex-wrap gap-2.5">
+                  <button
+                    onClick={() => handleExportCalendar(activeSprint)}
+                    className="inline-flex items-center gap-1.5 bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-850 font-bold text-xs px-3 py-1.5 rounded-lg transition-all cursor-pointer"
+                  >
+                    <Calendar size={13} />
+                    {profile.language === "ru" ? "Экспорт в Календарь" : "Export Calendar"}
+                  </button>
+                  <button
+                    onClick={handleTriggerWebhook}
+                    className="inline-flex items-center gap-1.5 bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-850 font-bold text-xs px-3 py-1.5 rounded-lg transition-all cursor-pointer"
+                  >
+                    <Send size={13} />
+                    {profile.language === "ru" ? "Отправить задачи дня" : "Send Daily Tasks"}
+                  </button>
+                </div>
               </div>
 
-              <div className="shrink-0 flex flex-col items-center">
-                <div className="text-3xl font-black text-gradient">{calculateSprintProgress()}%</div>
-                <div className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">{profile.language === "ru" ? "Выполнено" : "Progress"}</div>
+              <div className="shrink-0 flex items-center gap-5">
+                {/* Streak Counter */}
+                <div className="flex flex-col items-center justify-center bg-slate-950/40 border border-amber-500/20 px-3.5 py-1.5 rounded-xl">
+                  <div className="flex items-center gap-1">
+                    <Flame className="w-5 h-5 text-amber-500 fill-amber-500 animate-pulse" />
+                    <span className="text-xl font-black text-amber-400">{streakCount}</span>
+                  </div>
+                  <span className="text-[8px] font-bold text-amber-500/80 uppercase tracking-widest mt-0.5">
+                    {profile.language === "ru" ? "СТРЕЙК" : "STREAK"}
+                  </span>
+                </div>
+
+                <div className="shrink-0 flex flex-col items-center">
+                  <div className="text-3xl font-black text-gradient">{calculateSprintProgress()}%</div>
+                  <div className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">{profile.language === "ru" ? "Выполнено" : "Progress"}</div>
+                </div>
               </div>
             </div>
 
@@ -1905,6 +2096,77 @@ export default function Home() {
                         )}
                       </tbody>
                     </table>
+                  </div>
+                </div>
+
+                {/* INTEGRATIONS & AUTOMATIONS */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* n8n Prospecting Template Card */}
+                  <div className="glass-card p-6 flex flex-col gap-4">
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-xl">
+                        <Layers size={18} />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-white text-sm">
+                          {profile.language === "ru" ? "Шаблон автопоиска для n8n" : "n8n Prospecting Template"}
+                        </h3>
+                        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                          {profile.language === "ru" ? "Сбор лидов" : "Lead Generation"}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <p className="text-xs text-slate-400 leading-relaxed">
+                      {profile.language === "ru"
+                        ? "Скачайте готовый сценарий для n8n. Он автоматически находит контакты компаний через Hunter.io по домену и сохраняет их в Google Таблицы для последующего импорта в Money Engine."
+                        : "Download a ready-to-run n8n workflow. It automatically retrieves company contact details via Hunter.io by domain, and appends them to Google Sheets for importing."}
+                    </p>
+
+                    <div className="mt-auto">
+                      <a
+                        href="/templates/n8n_prospecting_template.json"
+                        download="n8n_prospecting_template.json"
+                        className="inline-flex items-center justify-center gap-1.5 w-full bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800/85 font-bold text-xs py-2.5 px-4 rounded-xl transition-all cursor-pointer"
+                      >
+                        <Download size={14} />
+                        {profile.language === "ru" ? "Скачать n8n сценарий (.json)" : "Download n8n script (.json)"}
+                      </a>
+                    </div>
+                  </div>
+
+                  {/* Webhook Integration Card */}
+                  <div className="glass-card p-6 flex flex-col gap-4">
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 rounded-xl">
+                        <Send size={18} />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-white text-sm">
+                          {profile.language === "ru" ? "Интеграция с Webhook" : "Webhook Integration"}
+                        </h3>
+                        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                          {profile.language === "ru" ? "Ежедневный фокус" : "Daily Workflow Focus"}
+                        </span>
+                      </div>
+                    </div>
+
+                    <p className="text-xs text-slate-400 leading-relaxed">
+                      {profile.language === "ru"
+                        ? "Настройте Webhook URL (n8n, Make.com или Telegram бот). Вы сможете отправлять список задач текущего дня одной кнопкой прямо из активного трекера."
+                        : "Configure a Webhook URL (n8n, Make.com, or Telegram webhook). Send today's tasks list to your Slack/Telegram notification bot with a single click."}
+                    </p>
+
+                    <div className="flex flex-col gap-1.5 mt-2">
+                      <label className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Webhook URL</label>
+                      <input
+                        type="url"
+                        placeholder="https://your-n8n-instance.com/webhook/..."
+                        value={webhookUrl}
+                        onChange={(e) => handleUpdateWebhookUrl(e.target.value)}
+                        className="glass-input text-xs"
+                      />
+                    </div>
                   </div>
                 </div>
               </div>

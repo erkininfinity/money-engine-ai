@@ -1,0 +1,182 @@
+{
+  "name": "Money Engine AI Prospecting Template",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "cb1c36df-3f9f-4375-bb0d-cfa81c6bb5c8",
+      "name": "When clicking \"Execute\"",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        250,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.hunter.io/v2/domain-search",
+        "sendQueryParameters": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "domain",
+              "value": "={{$json.domain || 'example.com'}}"
+            },
+            {
+              "name": "api_key",
+              "value": "YOUR_HUNTER_API_KEY"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e2da12b4-7d52-44a5-9bb7-915fcfd06584",
+      "name": "Find Emails (Hunter.io)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        470,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Keep only prospects with personal corporate emails\nconst emails = items[0].json.data.emails || [];\nreturn emails.map(e => ({\n  json: {\n    name: `${e.first_name || ''} ${e.last_name || ''}`.trim() || 'Prospect',\n    company: items[0].json.data.domain,\n    email: e.value,\n    position: e.position || 'Decision Maker',\n    confidence: e.confidence\n  }\n})).filter(p => p.json.confidence > 70);"
+      },
+      "id": "a9a3b98c-8c9a-41f2-ba2c-bd4f6a2b8e3a",
+      "name": "Parse & Score Prospects",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        690,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Sheet1",
+          "mode": "id"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Name": "={{$json.name}}",
+            "Company": "={{$json.company}}",
+            "Email": "={{$json.email}}",
+            "Position": "={{$json.position}}",
+            "Status": "New"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "default": "",
+              "type": "string",
+              "display": true
+            },
+            {
+              "id": "Company",
+              "displayName": "Company",
+              "required": false,
+              "default": "",
+              "type": "string",
+              "display": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "default": "",
+              "type": "string",
+              "display": true
+            },
+            {
+              "id": "Position",
+              "displayName": "Position",
+              "required": false,
+              "default": "",
+              "type": "string",
+              "display": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "default": "",
+              "type": "string",
+              "display": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "dcf1b378-cda6-48be-9bc0-fcdbe3146b9a",
+      "name": "Save to Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        910,
+        240
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "your-oauth2-credential-id",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "When clicking \"Execute\"": {
+      "main": [
+        [
+          {
+            "node": "Find Emails (Hunter.io)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Emails (Hunter.io)": {
+      "main": [
+        [
+          {
+            "node": "Parse & Score Prospects",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse & Score Prospects": {
+      "main": [
+        [
+          {
+            "node": "Save to Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "versionId": "f7d75d3c-99d9-43c2-aa92-802ba98cfde5",
+  "id": "prospecting-workflow-money-engine",
+  "meta": {
+    "templateId": "money-engine-prospecting-v1"
+  }
+}
