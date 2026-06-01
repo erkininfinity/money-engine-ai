@@ -1,7 +1,16 @@
 import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
 
+export const projects = sqliteTable("projects", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  createdAt: integer("created_at").notNull(),
+  updatedAt: integer("updated_at").notNull(),
+});
+
 export const profiles = sqliteTable("profiles", {
   id: text("id").primaryKey(),
+  projectId: text("project_id").references(() => projects.id, { onDelete: "set null" }),
   location: text("location"),
   language: text("language").notNull(), // "en" | "ru"
   targetMonthlyIncome: integer("target_monthly_income"),
@@ -19,6 +28,7 @@ export const profiles = sqliteTable("profiles", {
 
 export const sprints = sqliteTable("sprints", {
   id: text("id").primaryKey(),
+  projectId: text("project_id").references(() => projects.id, { onDelete: "set null" }),
   title: text("title").notNull(),
   goal: text("goal").notNull(),
   hypothesis: text("hypothesis").notNull(),
@@ -47,4 +57,20 @@ export const reviews = sqliteTable("reviews", {
   recommendation: text("recommendation").notNull(),
   nextSprint: text("next_sprint").notNull(), // JSON string (keep/change/test)
   createdAt: integer("created_at").notNull(),
+});
+
+export const prospects = sqliteTable("prospects", {
+  id: text("id").primaryKey(),
+  projectId: text("project_id")
+    .notNull()
+    .references(() => projects.id, { onDelete: "cascade" }),
+  sprintId: text("sprint_id")
+    .references(() => sprints.id, { onDelete: "set null" }),
+  name: text("name").notNull(),
+  contactInfo: text("contact_info").notNull(),
+  status: text("status").notNull(), // 'identified' | 'contacted' | 'replied' | 'meeting' | 'offer' | 'paid' | 'rejected'
+  notes: text("notes"),
+  objection: text("objection"),
+  createdAt: integer("created_at").notNull(),
+  updatedAt: integer("updated_at").notNull(),
 });

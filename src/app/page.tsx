@@ -63,7 +63,7 @@ const initialMetrics: SprintMetrics = {
 };
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<"generator" | "active_sprint" | "library">("generator");
+  const [activeTab, setActiveTab] = useState<"generator" | "active_sprint" | "library" | "workspace">("generator");
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [profile, setProfile] = useState<FounderProfileLite>(initialProfile);
   
@@ -106,6 +106,312 @@ export default function Home() {
         console.error("Failed to copy text: ", e);
       });
     }
+  };
+
+  // Workspace and Projects state
+  const [projectsList, setProjectsList] = useState<any[]>([]);
+  const [activeProject, setActiveProject] = useState<any | null>(null);
+  const [prospectsList, setProspectsList] = useState<any[]>([]);
+  const [showCreateProjectModal, setShowCreateProjectModal] = useState(false);
+  const [newProjectName, setNewProjectName] = useState("");
+  const [newProjectDesc, setNewProjectDesc] = useState("");
+  
+  // New prospect form state
+  const [newProspectName, setNewProspectName] = useState("");
+  const [newProspectContact, setNewProspectContact] = useState("");
+  const [newProspectStatus, setNewProspectStatus] = useState<string>("identified");
+  const [newProspectNotes, setNewProspectNotes] = useState("");
+
+  // Load projects from DB
+  const fetchProjects = async () => {
+    try {
+      const res = await fetch("/api/projects");
+      const data = await res.json();
+      if (data.projects) {
+        setProjectsList(data.projects);
+        if (data.projects.length > 0) {
+          const savedProjId = localStorage.getItem("money_engine_active_project_id");
+          const found = data.projects.find((p: any) => p.id === savedProjId);
+          if (found) {
+            setActiveProject(found);
+          } else {
+            setActiveProject(data.projects[0]);
+            localStorage.setItem("money_engine_active_project_id", data.projects[0].id);
+          }
+        } else {
+          await handleCreateDefaultProject();
+        }
+      }
+    } catch (e) {
+      console.error("Error loading projects:", e);
+    }
+  };
+
+  const handleCreateDefaultProject = async () => {
+    try {
+      const res = await fetch("/api/projects", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: profile.language === "ru" ? "Мой первый B2B Проект" : "My First B2B Project",
+          description: profile.language === "ru" ? "По умолчанию созданный проект для трекинга" : "Default created project for tracking"
+        })
+      });
+      const newProj = await res.json();
+      if (newProj && newProj.id) {
+        setProjectsList([newProj]);
+        setActiveProject(newProj);
+        localStorage.setItem("money_engine_active_project_id", newProj.id);
+      }
+    } catch (e) {
+      console.error("Error creating default project:", e);
+    }
+  };
+
+  const handleCreateProject = async () => {
+    if (!newProjectName.trim()) return;
+    try {
+      const res = await fetch("/api/projects", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: newProjectName,
+          description: newProjectDesc
+        })
+      });
+      const newProj = await res.json();
+      if (newProj && newProj.id) {
+        const updatedList = [newProj, ...projectsList];
+        setProjectsList(updatedList);
+        setActiveProject(newProj);
+        localStorage.setItem("money_engine_active_project_id", newProj.id);
+        setNewProjectName("");
+        setNewProjectDesc("");
+        setShowCreateProjectModal(false);
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Error creating project");
+    }
+  };
+
+  const fetchProspects = async (projectId: string) => {
+    try {
+      const res = await fetch(`/api/prospects?projectId=${projectId}`);
+      const data = await res.json();
+      if (data.prospects) {
+        setProspectsList(data.prospects);
+      }
+    } catch (e) {
+      console.error("Error loading prospects:", e);
+    }
+  };
+
+  useEffect(() => {
+    fetchProjects();
+  }, []);
+
+  useEffect(() => {
+    if (activeProject?.id) {
+      fetchProspects(activeProject.id);
+      localStorage.setItem("money_engine_active_project_id", activeProject.id);
+    }
+  }, [activeProject]);
+
+  const handleAddProspect = async () => {
+    if (!activeProject?.id || !newProspectName.trim() || !newProspectContact.trim()) return;
+    try {
+      const res = await fetch("/api/prospects", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          projectId: activeProject.id,
+          sprintId: activeSprint?.id || null,
+          name: newProspectName,
+          contactInfo: newProspectContact,
+          status: newProspectStatus,
+          notes: newProspectNotes
+        })
+      });
+      const data = await res.json();
+      if (data && data.id) {
+        setProspectsList([data, ...prospectsList]);
+        setNewProspectName("");
+        setNewProspectContact("");
+        setNewProspectNotes("");
+        setNewProspectStatus("identified");
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Error adding prospect");
+    }
+  };
+
+  const handleUpdateProspectStatus = async (id: string, newStatus: string) => {
+    try {
+      const res = await fetch("/api/prospects", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, status: newStatus })
+      });
+      if (res.ok) {
+        setProspectsList(prospectsList.map(p => p.id === id ? { ...p, status: newStatus, updatedAt: Date.now() } : p));
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleUpdateProspectNotes = async (id: string, notes: string) => {
+    try {
+      const res = await fetch("/api/prospects", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, notes })
+      });
+      if (res.ok) {
+        setProspectsList(prospectsList.map(p => p.id === id ? { ...p, notes, updatedAt: Date.now() } : p));
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleUpdateProspectObjection = async (id: string, objection: string) => {
+    try {
+      const res = await fetch("/api/prospects", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, objection })
+      });
+      if (res.ok) {
+        setProspectsList(prospectsList.map(p => p.id === id ? { ...p, objection, updatedAt: Date.now() } : p));
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleDeleteProspect = async (id: string) => {
+    if (!confirm(profile.language === "ru" ? "Удалить этого клиента?" : "Delete this prospect?")) return;
+    try {
+      const res = await fetch(`/api/prospects?id=${id}`, {
+        method: "DELETE"
+      });
+      if (res.ok) {
+        setProspectsList(prospectsList.filter(p => p.id !== id));
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleCSVImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !activeProject?.id) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const text = event.target?.result as string;
+      if (!text) return;
+
+      const lines = text.split(/\r?\n/);
+      const parsedProspects = [];
+
+      const startIdx = lines[0].toLowerCase().includes("name") ? 1 : 0;
+
+      for (let i = startIdx; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+
+        const parts = [];
+        let current = "";
+        let inQuotes = false;
+        for (let j = 0; j < line.length; j++) {
+          const char = line[j];
+          if (char === '"') {
+            inQuotes = !inQuotes;
+          } else if (char === "," && !inQuotes) {
+            parts.push(current.trim());
+            current = "";
+          } else {
+            current += char;
+          }
+        }
+        parts.push(current.trim());
+
+        if (parts.length >= 2) {
+          parsedProspects.push({
+            name: parts[0].replace(/^"|"$/g, ""),
+            contactInfo: parts[1].replace(/^"|"$/g, ""),
+            status: parts[2] ? parts[2].replace(/^"|"$/g, "") : "identified",
+            notes: parts[3] ? parts[3].replace(/^"|"$/g, "") : "",
+            objection: parts[4] ? parts[4].replace(/^"|"$/g, "") : ""
+          });
+        }
+      }
+
+      if (parsedProspects.length === 0) {
+        alert(profile.language === "ru" ? "Не найдено корректных строк" : "No valid rows found");
+        return;
+      }
+
+      try {
+        const res = await fetch("/api/prospects/import", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            projectId: activeProject.id,
+            prospectsList: parsedProspects
+          })
+        });
+        const data = await res.json();
+        if (data.success) {
+          fetchProspects(activeProject.id);
+          alert(profile.language === "ru" ? `Успешно импортировано: ${data.count}` : `Successfully imported: ${data.count}`);
+        } else {
+          alert("Import failed");
+        }
+      } catch (err) {
+        console.error(err);
+        alert("Error during import");
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  };
+
+  const getCalculatedMetrics = () => {
+    const listed = prospectsList.length;
+    const sent = prospectsList.filter(p => p.status !== "identified").length;
+    const replies = prospectsList.filter(p => !["identified", "contacted"].includes(p.status)).length;
+    const booked = prospectsList.filter(p => ["meeting_booked", "offer_sent", "paid"].includes(p.status)).length;
+    const completed = prospectsList.filter(p => ["offer_sent", "paid"].includes(p.status)).length;
+    const offers = prospectsList.filter(p => ["offer_sent", "paid"].includes(p.status)).length;
+    const payments = prospectsList.filter(p => p.status === "paid").length;
+    
+    let revenue = 0;
+    if (activeSprint?.offer?.priceRange) {
+      const match = activeSprint.offer.priceRange.match(/(\d+)/);
+      if (match) {
+        const unitPrice = parseInt(match[0], 10);
+        revenue = payments * unitPrice;
+      }
+    }
+
+    return {
+      prospectsListed: listed,
+      messagesSent: sent,
+      replies: replies,
+      callsBooked: booked,
+      callsCompleted: completed,
+      offersSent: offers,
+      paymentsReceived: payments,
+      revenueAmount: revenue,
+      bestReplySource: "",
+      biggestBlocker: "",
+      notes: ""
+    };
   };
 
   // Load state from localStorage on mount
@@ -528,6 +834,18 @@ export default function Home() {
   const audienceSuggestions = ["10 local business contacts", "member of local startup chat", "past clients from Upwork", "warm contacts in service shops"];
   const constraintSuggestions = ["Cannot work 9-5", "No upfront budget for software licenses", "No past case studies/reviews"];
 
+  const listedCount = prospectsList.length;
+  const contactedCount = prospectsList.filter((p) => p.status !== "identified").length;
+  const repliedCount = prospectsList.filter((p) => !["identified", "contacted"].includes(p.status)).length;
+  const meetingCount = prospectsList.filter((p) => ["meeting_booked", "offer_sent", "paid"].includes(p.status)).length;
+  const offerCount = prospectsList.filter((p) => ["offer_sent", "paid"].includes(p.status)).length;
+  const paidCount = prospectsList.filter((p) => p.status === "paid").length;
+
+  const replyRate = contactedCount > 0 ? Math.round((repliedCount / contactedCount) * 100) : 0;
+  const meetingRate = repliedCount > 0 ? Math.round((meetingCount / repliedCount) * 100) : 0;
+  const offerRate = meetingCount > 0 ? Math.round((offerCount / meetingCount) * 100) : 0;
+  const closingRate = offerCount > 0 ? Math.round((paidCount / offerCount) * 100) : 0;
+
   return (
     <main className="min-h-screen pb-20 px-4 md:px-8">
       {/* Background radial effects */}
@@ -558,6 +876,18 @@ export default function Home() {
           >
             <BookOpen size={14} />
             {profile.language === "ru" ? "Библиотека сценариев" : "Playbook Library"}
+          </button>
+
+          <button
+            onClick={() => setActiveTab("workspace")}
+            className={`flex items-center gap-1.5 text-sm font-semibold py-1.5 px-3 rounded-lg transition-all cursor-pointer ${
+              activeTab === "workspace"
+                ? "bg-indigo-600 text-white"
+                : "text-slate-400 hover:text-slate-200"
+            }`}
+          >
+            <Layers size={14} />
+            {profile.language === "ru" ? "Рабочая область" : "Workspace"}
           </button>
 
           {activeSprint && (
@@ -1083,8 +1413,16 @@ export default function Home() {
               </div>
               <button
                 onClick={() => {
-                  setMetrics(initialMetrics);
-                  setUserNotes("");
+                  const calculated = getCalculatedMetrics();
+                  setMetrics(calculated);
+                  
+                  // Gathers objections from prospects in the list
+                  const objectionsText = prospectsList
+                    .filter(p => p.objection)
+                    .map(p => `${p.name}: ${p.objection}`)
+                    .join("\n");
+                  setUserNotes(objectionsText);
+                  
                   setShowMetricsModal(true);
                 }}
                 className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-6 py-3 rounded-xl transition-all cursor-pointer shadow-lg hover:shadow-indigo-500/20 glow-border whitespace-nowrap"
@@ -1234,6 +1572,343 @@ export default function Home() {
                 ))
               )}
             </div>
+          </section>
+        )}
+
+        {/* TAB 4: REVENUE WORKSPACE */}
+        {activeTab === "workspace" && (
+          <section className="slide-up flex flex-col gap-6">
+            <header className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 border-b border-slate-900 pb-5">
+              <div>
+                <h2 className="text-2xl font-black text-white mb-1">
+                  {profile.language === "ru" ? "💼 Рабочая область B2B" : "💼 B2B Revenue Workspace"}
+                </h2>
+                <p className="text-slate-400 text-xs">
+                  {profile.language === "ru" 
+                    ? "Управляйте проектами, списком лидов и анализируйте воронку продаж в реальном времени."
+                    : "Manage your outreach pipeline, track customer objections, and visualize conversions."}
+                </p>
+              </div>
+
+              <div className="flex gap-2">
+                {/* Project Selector */}
+                <select
+                  value={activeProject?.id || ""}
+                  onChange={(e) => {
+                    const found = projectsList.find(p => p.id === e.target.value);
+                    if (found) setActiveProject(found);
+                  }}
+                  className="glass-input text-xs w-48 py-2"
+                >
+                  {projectsList.map(p => (
+                    <option key={p.id} value={p.id} className="bg-slate-900 text-white">
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+
+                <button
+                  onClick={() => setShowCreateProjectModal(true)}
+                  className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs px-3.5 py-2 rounded-xl transition-all cursor-pointer shadow hover:shadow-indigo-500/10 glow-border whitespace-nowrap"
+                >
+                  + {profile.language === "ru" ? "Новый проект" : "New Project"}
+                </button>
+              </div>
+            </header>
+
+            {activeProject && (
+              <div className="flex flex-col gap-8">
+                {/* Project Info card */}
+                {activeProject.description && (
+                  <div className="bg-slate-950/20 p-4 rounded-xl border border-slate-900 text-xs text-slate-400 italic">
+                    <span className="font-semibold text-slate-300 not-italic block mb-0.5">Project Description:</span>
+                    {activeProject.description}
+                  </div>
+                )}
+
+                {/* Dashboard: Funnel & Key Rates */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Funnel Progress */}
+                  <div className="glass-card p-6 flex flex-col gap-4.5">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-indigo-400">
+                      {profile.language === "ru" ? "📊 Воронка продаж" : "📊 Conversion Funnel"}
+                    </h3>
+                    <div className="flex flex-col gap-3.5">
+                      {/* 1. Identified */}
+                      <div>
+                        <div className="flex justify-between text-xs text-slate-300 font-semibold mb-1">
+                          <span>Identified / Добавлено в базу</span>
+                          <span>{listedCount}</span>
+                        </div>
+                        <div className="w-full bg-slate-950/40 h-2 rounded-full overflow-hidden">
+                          <div className="bg-indigo-500 h-full rounded-full" style={{ width: "100%" }} />
+                        </div>
+                      </div>
+
+                      {/* 2. Contacted */}
+                      <div>
+                        <div className="flex justify-between text-xs text-slate-300 font-semibold mb-1">
+                          <span>Contacted / Отправлено писем</span>
+                          <span>{contactedCount} <span className="text-[10px] text-slate-500 font-normal">({listedCount > 0 ? Math.round((contactedCount/listedCount)*100) : 0}%)</span></span>
+                        </div>
+                        <div className="w-full bg-slate-950/40 h-2 rounded-full overflow-hidden">
+                          <div className="bg-indigo-400 h-full rounded-full" style={{ width: listedCount > 0 ? `${(contactedCount/listedCount)*100}%` : "0%" }} />
+                        </div>
+                      </div>
+
+                      {/* 3. Replied */}
+                      <div>
+                        <div className="flex justify-between text-xs text-slate-300 font-semibold mb-1">
+                          <span>Replied / Получено ответов</span>
+                          <span>{repliedCount} <span className="text-[10px] text-slate-500 font-normal">({contactedCount > 0 ? Math.round((repliedCount/contactedCount)*100) : 0}%)</span></span>
+                        </div>
+                        <div className="w-full bg-slate-950/40 h-2 rounded-full overflow-hidden">
+                          <div className="bg-amber-500 h-full rounded-full" style={{ width: listedCount > 0 ? `${(repliedCount/listedCount)*100}%` : "0%" }} />
+                        </div>
+                      </div>
+
+                      {/* 4. Meetings Booked */}
+                      <div>
+                        <div className="flex justify-between text-xs text-slate-300 font-semibold mb-1">
+                          <span>Meetings / Назначено созвонов</span>
+                          <span>{meetingCount} <span className="text-[10px] text-slate-500 font-normal">({repliedCount > 0 ? Math.round((meetingCount/repliedCount)*100) : 0}%)</span></span>
+                        </div>
+                        <div className="w-full bg-slate-950/40 h-2 rounded-full overflow-hidden">
+                          <div className="bg-cyan-500 h-full rounded-full" style={{ width: listedCount > 0 ? `${(meetingCount/listedCount)*100}%` : "0%" }} />
+                        </div>
+                      </div>
+
+                      {/* 5. Offers Sent */}
+                      <div>
+                        <div className="flex justify-between text-xs text-slate-300 font-semibold mb-1">
+                          <span>Offers Sent / Выставлено офферов</span>
+                          <span>{offerCount} <span className="text-[10px] text-slate-500 font-normal">({meetingCount > 0 ? Math.round((offerCount/meetingCount)*100) : 0}%)</span></span>
+                        </div>
+                        <div className="w-full bg-slate-950/40 h-2 rounded-full overflow-hidden">
+                          <div className="bg-purple-500 h-full rounded-full" style={{ width: listedCount > 0 ? `${(offerCount/listedCount)*100}%` : "0%" }} />
+                        </div>
+                      </div>
+
+                      {/* 6. Closed Paid */}
+                      <div>
+                        <div className="flex justify-between text-xs text-emerald-400 font-semibold mb-1">
+                          <span>Paid Deals / Успешные оплаты 🎉</span>
+                          <span>{paidCount} <span className="text-[10px] text-emerald-500/80 font-normal">({offerCount > 0 ? Math.round((paidCount/offerCount)*100) : 0}%)</span></span>
+                        </div>
+                        <div className="w-full bg-slate-950/40 h-2 rounded-full overflow-hidden">
+                          <div className="bg-emerald-500 h-full rounded-full" style={{ width: listedCount > 0 ? `${(paidCount/listedCount)*100}%` : "0%" }} />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Funnel Metrics & Financials */}
+                  <div className="glass-card p-6 flex flex-col justify-between gap-5">
+                    <div>
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-indigo-400 mb-4.5">
+                        {profile.language === "ru" ? "📈 Показатели конверсии" : "📈 Funnel Performance"}
+                      </h3>
+                      <div className="grid grid-cols-2 gap-4 text-center">
+                        <div className="bg-slate-950/30 p-3.5 rounded-xl border border-slate-900/60">
+                          <span className="text-[10px] text-slate-500 block uppercase font-semibold">Reply Rate</span>
+                          <span className="text-xl font-black text-white">{replyRate}%</span>
+                        </div>
+                        <div className="bg-slate-950/30 p-3.5 rounded-xl border border-slate-900/60">
+                          <span className="text-[10px] text-slate-500 block uppercase font-semibold">Book Rate</span>
+                          <span className="text-xl font-black text-white">{meetingRate}%</span>
+                        </div>
+                        <div className="bg-slate-950/30 p-3.5 rounded-xl border border-slate-900/60">
+                          <span className="text-[10px] text-slate-500 block uppercase font-semibold">Offer Rate</span>
+                          <span className="text-xl font-black text-white">{offerRate}%</span>
+                        </div>
+                        <div className="bg-slate-950/30 p-3.5 rounded-xl border border-slate-900/60">
+                          <span className="text-[10px] text-slate-500 block uppercase font-semibold">Closing Rate</span>
+                          <span className="text-xl font-black text-white">{closingRate}%</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-indigo-950/10 border border-indigo-900/30 p-4.5 rounded-2xl flex justify-between items-center">
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-indigo-400 tracking-wider">Estimated Revenue</span>
+                        <h4 className="text-2xl font-black text-white mt-0.5">
+                          {getCalculatedMetrics().revenueAmount.toLocaleString()} {activeSprint?.offer?.priceRange.includes("KZT") ? "KZT" : activeSprint?.offer?.priceRange.includes("KZT") ? "KZT" : ""}
+                        </h4>
+                      </div>
+                      <span className="text-xs text-slate-400 italic">
+                        {paidCount} {profile.language === "ru" ? "оплат(ы)" : "payment(s)"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Data Tools Panel (Import/Export) */}
+                <div className="glass-card p-4.5 flex flex-wrap gap-4 items-center justify-between">
+                  <div className="flex gap-3">
+                    <a
+                      href={`/api/prospects/export?projectId=${activeProject.id}&format=csv`}
+                      className="flex items-center gap-1.5 text-xs text-slate-300 hover:text-white bg-slate-900 hover:bg-slate-800 border border-slate-800 px-3 py-2 rounded-xl transition-all cursor-pointer font-bold"
+                    >
+                      <Download size={14} /> Export CSV
+                    </a>
+                    <a
+                      href={`/api/prospects/export?projectId=${activeProject.id}&format=markdown`}
+                      className="flex items-center gap-1.5 text-xs text-slate-300 hover:text-white bg-slate-900 hover:bg-slate-800 border border-slate-800 px-3 py-2 rounded-xl transition-all cursor-pointer font-bold"
+                    >
+                      <Download size={14} /> Export Markdown (Notion)
+                    </a>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <label className="text-xs text-slate-400 font-semibold">
+                      {profile.language === "ru" ? "Импорт лидов (CSV):" : "Import Leads (CSV):"}
+                    </label>
+                    <input
+                      type="file"
+                      accept=".csv"
+                      onChange={handleCSVImport}
+                      className="block w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-950/20 file:text-indigo-400 hover:file:bg-indigo-950/30 file:cursor-pointer max-w-xs"
+                    />
+                  </div>
+                </div>
+
+                {/* Prospects list CRM grid */}
+                <div className="glass-card p-6 flex flex-col gap-6">
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-indigo-400 border-b border-slate-900 pb-3">
+                    👥 {profile.language === "ru" ? "Список потенциальных клиентов" : "Pipeline Contact List"}
+                  </h3>
+
+                  {/* Add Prospect Form */}
+                  <div className="grid grid-cols-1 md:grid-cols-5 gap-3.5 items-end bg-slate-950/20 p-4 rounded-xl border border-slate-900/60">
+                    <div className="flex flex-col gap-1.5 md:col-span-1">
+                      <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Client Name</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Saloon Beauty Astana"
+                        value={newProspectName}
+                        onChange={(e) => setNewProspectName(e.target.value)}
+                        className="glass-input text-xs"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1.5 md:col-span-1">
+                      <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Contact Info / Link</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. @beauty_astana / instagram.com"
+                        value={newProspectContact}
+                        onChange={(e) => setNewProspectContact(e.target.value)}
+                        className="glass-input text-xs"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1.5 md:col-span-1">
+                      <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Pipeline Status</label>
+                      <select
+                        value={newProspectStatus}
+                        onChange={(e) => setNewProspectStatus(e.target.value)}
+                        className="glass-input text-xs"
+                      >
+                        <option value="identified">Identified (В базе)</option>
+                        <option value="contacted">Contacted (Связь)</option>
+                        <option value="replied">Replied (Ответ)</option>
+                        <option value="meeting_booked">Meeting (Созвон)</option>
+                        <option value="offer_sent">Offer Sent (Оффер)</option>
+                        <option value="paid">Paid (Оплата 🎉)</option>
+                        <option value="rejected">Rejected (Отказ)</option>
+                      </select>
+                    </div>
+                    <div className="flex flex-col gap-1.5 md:col-span-1">
+                      <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Notes</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Warm lead, needs follow up"
+                        value={newProspectNotes}
+                        onChange={(e) => setNewProspectNotes(e.target.value)}
+                        className="glass-input text-xs"
+                      />
+                    </div>
+                    <button
+                      onClick={handleAddProspect}
+                      className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs py-2 px-4 rounded-xl transition-all cursor-pointer md:col-span-1"
+                    >
+                      + {profile.language === "ru" ? "Добавить лид" : "Add Lead"}
+                    </button>
+                  </div>
+
+                  {/* CRM Table */}
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse text-xs">
+                      <thead>
+                        <tr className="border-b border-slate-900 text-slate-400 font-semibold uppercase tracking-wider text-[10px]">
+                          <th className="py-3 px-3">Name</th>
+                          <th className="py-3 px-3">Contact</th>
+                          <th className="py-3 px-3 w-40">Status</th>
+                          <th className="py-3 px-3">Notes (click to edit)</th>
+                          <th className="py-3 px-3">Objection / Reason</th>
+                          <th className="py-3 px-3 text-right">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-950/60">
+                        {prospectsList.length === 0 ? (
+                          <tr>
+                            <td colSpan={6} className="text-center py-8 text-slate-500">
+                              {profile.language === "ru" ? "Список пуст. Добавьте первых клиентов выше!" : "No leads tracked yet. Add your first prospects above!"}
+                            </td>
+                          </tr>
+                        ) : (
+                          prospectsList.map((p) => (
+                            <tr key={p.id} className="hover:bg-slate-900/20 text-slate-200">
+                              <td className="py-3 px-3 font-bold text-white">{p.name}</td>
+                              <td className="py-3 px-3 text-slate-400 font-mono select-all">{p.contactInfo}</td>
+                              <td className="py-3 px-3">
+                                <select
+                                  value={p.status}
+                                  onChange={(e) => handleUpdateProspectStatus(p.id, e.target.value)}
+                                  className="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-slate-300 w-full focus:outline-none"
+                                >
+                                  <option value="identified">Identified (В базе)</option>
+                                  <option value="contacted">Contacted (Связь)</option>
+                                  <option value="replied">Replied (Ответ)</option>
+                                  <option value="meeting_booked">Meeting (Созвон)</option>
+                                  <option value="offer_sent">Offer Sent (Оффер)</option>
+                                  <option value="paid">Paid (Оплата 🎉)</option>
+                                  <option value="rejected">Rejected (Отказ)</option>
+                                </select>
+                              </td>
+                              <td className="py-3 px-3">
+                                <input
+                                  type="text"
+                                  value={p.notes || ""}
+                                  onChange={(e) => handleUpdateProspectNotes(p.id, e.target.value)}
+                                  className="bg-transparent border-b border-transparent hover:border-slate-800 focus:border-indigo-500 text-xs px-1 py-0.5 w-full text-slate-300 focus:outline-none transition-all"
+                                  placeholder="..."
+                                />
+                              </td>
+                              <td className="py-3 px-3">
+                                <input
+                                  type="text"
+                                  value={p.objection || ""}
+                                  onChange={(e) => handleUpdateProspectObjection(p.id, e.target.value)}
+                                  className="bg-transparent border-b border-transparent hover:border-slate-800 focus:border-indigo-500 text-xs px-1 py-0.5 w-full text-slate-300 focus:outline-none transition-all"
+                                  placeholder={profile.language === "ru" ? "Возражение клиента..." : "Log objection..."}
+                                />
+                              </td>
+                              <td className="py-3 px-3 text-right">
+                                <button
+                                  onClick={() => handleDeleteProspect(p.id)}
+                                  className="text-rose-400 hover:text-rose-300 transition-colors font-semibold px-2 cursor-pointer"
+                                >
+                                  ✕
+                                </button>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
           </section>
         )}
 
@@ -1395,6 +2070,62 @@ export default function Home() {
               {profile.language === "ru" ? "Отправить метрики и запустить ИИ-Анализ" : "Submit & Run AI review"}
               <Sparkles size={16} />
             </button>
+          </div>
+        </div>
+      )}
+      {/* CREATE PROJECT MODAL */}
+      {showCreateProjectModal && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-40 flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl max-w-md w-full flex flex-col gap-4 shadow-2xl slide-up">
+            <div className="flex justify-between items-center border-b border-slate-800 pb-2">
+              <h3 className="font-bold text-white text-base">
+                {profile.language === "ru" ? "Создать новый B2B проект" : "Create New B2B Project"}
+              </h3>
+              <button
+                onClick={() => setShowCreateProjectModal(false)}
+                className="text-slate-400 hover:text-white transition-colors cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="flex flex-col gap-3 text-xs">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-slate-400 font-semibold">Project Name</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Lead Gen for Medical Clinics"
+                  value={newProjectName}
+                  onChange={(e) => setNewProjectName(e.target.value)}
+                  className="glass-input text-xs"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-slate-400 font-semibold">Description / Goal</label>
+                <textarea
+                  placeholder="e.g. Build diagnostic offers and audit 15 local clinics"
+                  value={newProjectDesc}
+                  onChange={(e) => setNewProjectDesc(e.target.value)}
+                  className="glass-input text-xs h-20 resize-y"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 border-t border-slate-800 pt-3 mt-1">
+              <button
+                onClick={() => setShowCreateProjectModal(false)}
+                className="flex-1 bg-slate-950 hover:bg-slate-800 text-slate-400 hover:text-white font-bold text-xs py-2 rounded-xl transition-colors border border-slate-850"
+              >
+                {profile.language === "ru" ? "Отмена" : "Cancel"}
+              </button>
+              <button
+                onClick={handleCreateProject}
+                className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs py-2 rounded-xl transition-all glow-border"
+              >
+                {profile.language === "ru" ? "Создать" : "Create"}
+              </button>
+            </div>
           </div>
         </div>
       )}
