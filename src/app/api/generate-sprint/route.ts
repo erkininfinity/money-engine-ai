@@ -274,7 +274,7 @@ function getDemoSprint(language: "ru" | "en", offer: any) {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { profile, selectedPath, offer } = body;
+    const { profile, selectedPath, offer, mode } = body;
 
     const validatedProfile = profileSchema.safeParse(profile);
     const validatedPath = generatedPathSchema.safeParse(selectedPath);
@@ -287,6 +287,8 @@ export async function POST(req: Request) {
       );
     }
 
+    const sprintMode = (mode === "growth") ? "growth" : "mvp";
+
     // Check if API key is not defined, or is dummy, to return demo data
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey || apiKey === "dummy-key") {
@@ -298,7 +300,8 @@ export async function POST(req: Request) {
     const userPrompt = formatSprintGeneratorUserPrompt(
       validatedProfile.data,
       validatedPath.data,
-      validatedOffer.data
+      validatedOffer.data,
+      sprintMode
     );
 
     const response = await openai.chat.completions.create({

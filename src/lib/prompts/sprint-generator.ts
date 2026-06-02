@@ -9,13 +9,15 @@ CRITICAL RULES:
 2. TIME-BOUND: Daily tasks must fit into the founder's available hours. Do not schedule tasks that take more time than they have.
 3. NO SPAM IN OUTREACH: Messages must be personal, short (1-2 paragraphs), respectful, asking permission before sharing details, and suggesting honest trust builders (like a free audit or diagnostic mystery test).
 4. LOCALIZATION & CHANNELS: Schedule outreach and list-building actions specifically using tools and sources that are valid for the user's region. If the location is in the CIS (Kazakhstan/Russia), direct outreach should rely on WhatsApp or Instagram DM (as email is rarely used for B2B there), and directories like 2GIS should be recommended. For Western users, use LinkedIn/Email. All pricing information must match the Default Currency specified. Fully respect and integrate 'Local Market Research Notes' if provided.
-5. STRICT OUTPUT LANGUAGE: If the profile language is "ru", translate the entire JSON output values to Russian. If "en", generate in English.
-6. Return a valid JSON object matching the requested schema. Do not include markdown wraps.`;
+5. GROWTH MODE INTEGRATION: If the generated sprint is under "growth" mode, ensure the daily action steps include Customer Success checklists (confirming setup success, reviewing client satisfaction, scheduling a quick check-in call) and the generated outreach scripts include Referral Loops (asking paid/happy clients for warm introductions or recommendations to similar businesses).
+6. STRICT OUTPUT LANGUAGE: If the profile language is "ru", translate the entire JSON output values to Russian. If "en", generate in English.
+7. Return a valid JSON object matching the requested schema. Do not include markdown wraps.`;
 
 export function formatSprintGeneratorUserPrompt(
   profile: FounderProfileLite,
   selectedPath: GeneratedPath,
-  offer: OfferDraft
+  offer: OfferDraft,
+  mode: "mvp" | "growth" = "mvp"
 ): string {
   const currencyStr = profile.currency || "KZT";
   const researchStr = profile.marketResearchNotes 
@@ -30,6 +32,7 @@ export function formatSprintGeneratorUserPrompt(
 - Audience Access: ${profile.audienceAccess.join(", ")}
 - Constraints: ${profile.constraints.join("\n  ")}
 - Default Currency: ${currencyStr}${researchStr}
+- Sprint Mode: ${mode}
 
 Selected Path:
 - Name: ${selectedPath.name}
@@ -92,7 +95,7 @@ Based on this, generate a complete 7-day Sprint Plan. Match the following JSON s
   ],
   "outreachMessages": [
     {
-      "type": "warm_contact | referral_request | cold_personal | follow_up",
+      "type": "warm_contact | referral_request | cold_personal | follow_up | customer_success_check_in | referral_ask",
       "label": "Short description of the script usage",
       "content": "Template text with placeholders like [Name]",
       "instructions": "How to personalize and when to send"

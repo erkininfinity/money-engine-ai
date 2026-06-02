@@ -139,6 +139,17 @@ export default function Home() {
   const [completedDays, setCompletedDays] = useState<string[]>([]);
   const [showStreakFlame, setShowStreakFlame] = useState<boolean>(false);
 
+  // Growth Mode states
+  const [workspaceMode, setWorkspaceMode] = useState<"mvp" | "growth">("mvp");
+  const [selectedCaseStudyProspect, setSelectedCaseStudyProspect] = useState<any | null>(null);
+  const [caseStudyMarkdown, setCaseStudyMarkdown] = useState<string>("");
+  const [isGeneratingCaseStudy, setIsGeneratingCaseStudy] = useState(false);
+  const [showCaseStudyModal, setShowCaseStudyModal] = useState(false);
+
+  const [retainersData, setRetainersData] = useState<any | null>(null);
+  const [isGeneratingRetainers, setIsGeneratingRetainers] = useState(false);
+  const [showRetainersModal, setShowRetainersModal] = useState(false);
+
   // Load projects from DB
   const fetchProjects = async () => {
     try {
@@ -226,6 +237,10 @@ export default function Home() {
 
   useEffect(() => {
     fetchProjects();
+    const savedMode = localStorage.getItem("money_engine_workspace_mode") as "mvp" | "growth";
+    if (savedMode) {
+      setWorkspaceMode(savedMode);
+    }
   }, []);
 
   useEffect(() => {
@@ -234,6 +249,76 @@ export default function Home() {
       localStorage.setItem("money_engine_active_project_id", activeProject.id);
     }
   }, [activeProject]);
+
+  const handleToggleWorkspaceMode = (mode: "mvp" | "growth") => {
+    setWorkspaceMode(mode);
+    localStorage.setItem("money_engine_workspace_mode", mode);
+  };
+
+  const handleGenerateCaseStudy = async (prospect: any) => {
+    setSelectedCaseStudyProspect(prospect);
+    setCaseStudyMarkdown("");
+    setIsGeneratingCaseStudy(true);
+    setShowCaseStudyModal(true);
+
+    try {
+      const res = await fetch("/api/generate-case-study", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          profile,
+          projectName: activeProject?.name || "",
+          projectDescription: activeProject?.description || "",
+          offerName: activeSprint?.offer?.name || "",
+          offerPrice: activeSprint?.offer?.priceRange || "",
+          prospectName: prospect.name,
+          prospectNotes: prospect.notes || "",
+        }),
+      });
+      const data = await res.json();
+      if (data.markdown) {
+        setCaseStudyMarkdown(data.markdown);
+      } else {
+        setCaseStudyMarkdown(profile.language === "ru" ? "Ошибка при генерации кейса." : "Failed to generate case study.");
+      }
+    } catch (e) {
+      console.error(e);
+      setCaseStudyMarkdown(profile.language === "ru" ? "Ошибка при соединении с сервером." : "Network error generating case study.");
+    } finally {
+      setIsGeneratingCaseStudy(false);
+    }
+  };
+
+  const handleGenerateRetainers = async () => {
+    setRetainersData(null);
+    setIsGeneratingRetainers(true);
+    setShowRetainersModal(true);
+
+    try {
+      const res = await fetch("/api/generate-growth-offer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          profile,
+          projectName: activeProject?.name || "",
+          projectDescription: activeProject?.description || "",
+          oneTimeOfferName: activeSprint?.offer?.name || "",
+          oneTimeOfferPrice: activeSprint?.offer?.priceRange || "",
+        }),
+      });
+      const data = await res.json();
+      if (data.retainers) {
+        setRetainersData(data);
+      } else {
+        alert(profile.language === "ru" ? "Не удалось сгенерировать подписки." : "Failed to generate retainers.");
+      }
+    } catch (e) {
+      console.error(e);
+      alert(profile.language === "ru" ? "Ошибка при подключении к серверу." : "Network error generating retainers.");
+    } finally {
+      setIsGeneratingRetainers(false);
+    }
+  };
 
   const handleAddProspect = async () => {
     if (!activeProject?.id || !newProspectName.trim() || !newProspectContact.trim()) return;
@@ -511,7 +596,7 @@ export default function Home() {
       const response = await fetch("/api/generate-paths", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(profile)
+        body: JSON.stringify({ profile, mode: workspaceMode })
       });
       const data = await response.json();
       if (data.paths) {
@@ -564,7 +649,7 @@ export default function Home() {
       const response = await fetch("/api/generate-sprint", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ profile, selectedPath, offer })
+        body: JSON.stringify({ profile, selectedPath, offer, mode: workspaceMode })
       });
       const data = await response.json();
       if (data && data.title) {
@@ -1870,7 +1955,31 @@ export default function Home() {
                 </p>
               </div>
 
-              <div className="flex gap-2">
+              <div className="flex flex-wrap items-center gap-3">
+                {/* MVP / Growth Mode Switcher */}
+                <div className="bg-slate-950 border border-slate-900 rounded-xl p-0.5 flex">
+                  <button
+                    onClick={() => handleToggleWorkspaceMode("mvp")}
+                    className={`text-[10px] font-black uppercase tracking-wider py-1.5 px-3 rounded-lg transition-all cursor-pointer ${
+                      workspaceMode === "mvp"
+                        ? "bg-indigo-600 text-white shadow animate-fade-in"
+                        : "text-slate-500 hover:text-slate-300"
+                    }`}
+                  >
+                    MVP Mode
+                  </button>
+                  <button
+                    onClick={() => handleToggleWorkspaceMode("growth")}
+                    className={`text-[10px] font-black uppercase tracking-wider py-1.5 px-3 rounded-lg transition-all cursor-pointer ${
+                      workspaceMode === "growth"
+                        ? "bg-emerald-600 text-white shadow animate-fade-in"
+                        : "text-slate-500 hover:text-slate-300"
+                    }`}
+                  >
+                    Growth Mode
+                  </button>
+                </div>
+
                 {/* Project Selector */}
                 <select
                   value={activeProject?.id || ""}
@@ -1878,7 +1987,7 @@ export default function Home() {
                     const found = projectsList.find(p => p.id === e.target.value);
                     if (found) setActiveProject(found);
                   }}
-                  className="glass-input text-xs w-48 py-2"
+                  className="glass-input text-xs w-40 py-2"
                 >
                   {projectsList.map(p => (
                     <option key={p.id} value={p.id} className="bg-slate-900 text-white">
@@ -2172,7 +2281,15 @@ export default function Home() {
                                   placeholder={profile.language === "ru" ? "Возражение клиента..." : "Log objection..."}
                                 />
                               </td>
-                              <td className="py-3 px-3 text-right">
+                              <td className="py-3 px-3 text-right flex items-center justify-end gap-2">
+                                {p.status === "paid" && (
+                                  <button
+                                    onClick={() => handleGenerateCaseStudy(p)}
+                                    className="bg-emerald-600/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/30 rounded px-2 py-0.5 text-[10px] font-semibold cursor-pointer transition-all whitespace-nowrap"
+                                  >
+                                    {profile.language === "ru" ? "Создать кейс" : "Case Study"}
+                                  </button>
+                                )}
                                 <button
                                   onClick={() => handleDeleteProspect(p.id)}
                                   className="text-rose-400 hover:text-rose-300 transition-colors font-semibold px-2 cursor-pointer"
@@ -2187,6 +2304,97 @@ export default function Home() {
                     </table>
                   </div>
                 </div>
+
+                {/* GROWTH MODE RETAINER AND UPSELL OFFERS */}
+                {workspaceMode === "growth" && (
+                  <div className="glass-card p-6 flex flex-col gap-5 border border-emerald-500/25 slide-up">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                      <div className="flex items-center gap-2.5">
+                        <div className="p-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl">
+                          <TrendingUp size={18} />
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-white text-sm">
+                            {profile.language === "ru" ? "🔄 Сборка подписочных офферов (Retainer Builder)" : "🔄 Retainer & Subscription Builder"}
+                          </h3>
+                          <p className="text-slate-400 text-[11px]">
+                            {profile.language === "ru"
+                              ? "Создайте модель ежемесячной поддержки для удержания клиентов и увеличения LTV."
+                              : "Generate recurring monthly support, audit, and monitoring tiers for your clients."}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={handleGenerateRetainers}
+                        disabled={isGeneratingRetainers}
+                        className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs py-2 px-4 rounded-xl transition-all cursor-pointer shadow hover:shadow-emerald-500/10 glow-border whitespace-nowrap self-start sm:self-auto"
+                      >
+                        {isGeneratingRetainers 
+                          ? (profile.language === "ru" ? "Генерация..." : "Generating...") 
+                          : (profile.language === "ru" ? "Собрать подписочные офферы" : "Build Subscription Offer")}
+                      </button>
+                    </div>
+
+                    {retainersData && (
+                      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-2">
+                        {retainersData.retainers?.map((tier: any, i: number) => (
+                          <div key={i} className="bg-slate-950/40 p-4 rounded-xl border border-slate-900 flex flex-col justify-between hover:border-emerald-500/20 transition-all">
+                            <div>
+                              <div className="flex justify-between items-start mb-2">
+                                <span className="text-[9px] font-bold text-emerald-400 uppercase tracking-wider bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">{tier.tier}</span>
+                                <span className="text-xs font-black text-white">{tier.priceMonthly}</span>
+                              </div>
+                              <h4 className="font-bold text-white text-xs mb-3">{tier.name}</h4>
+                              <ul className="text-[11px] text-slate-300 list-disc list-inside space-y-1.5 mb-4">
+                                {tier.deliverables?.map((d: string, idx: number) => (
+                                  <li key={idx} className="line-clamp-2">{d}</li>
+                                ))}
+                              </ul>
+                            </div>
+                            <div className="text-[10px] text-slate-500 italic border-t border-slate-900/60 pt-2">
+                              {tier.whyItMakesSense}
+                            </div>
+                          </div>
+                        ))}
+
+                        {retainersData.upsellPitchScript && (
+                          <div className="lg:col-span-3 bg-slate-950/20 p-4 rounded-xl border border-slate-900 mt-2">
+                            <div className="flex justify-between items-center mb-2">
+                              <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                                <Send size={12} className="text-indigo-400" />
+                                {profile.language === "ru" ? "Скрипт перехода на ретейнер" : "Upsell Message Template"}
+                              </span>
+                              <button
+                                onClick={() => copyToClipboard(retainersData.upsellPitchScript, 999)}
+                                className="text-slate-400 hover:text-white flex items-center gap-1 text-[11px] font-semibold transition-all"
+                              >
+                                {copiedIndex === 999 ? (
+                                  <>
+                                    <Check size={12} className="text-emerald-400" />
+                                    {profile.language === "ru" ? "Скопировано!" : "Copied!"}
+                                  </>
+                                ) : (
+                                  <>
+                                    <Copy size={12} />
+                                    {profile.language === "ru" ? "Копировать" : "Copy"}
+                                  </>
+                                )}
+                              </button>
+                            </div>
+                            <pre className="text-slate-300 font-mono text-[11px] whitespace-pre-wrap bg-slate-950 p-3 rounded-lg border border-slate-900">
+                              {retainersData.upsellPitchScript}
+                            </pre>
+                            {retainersData.pitchStrategyNotes && (
+                              <p className="text-slate-500 text-[10px] mt-2 italic">
+                                💡 {retainersData.pitchStrategyNotes}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* INTEGRATIONS & AUTOMATIONS */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -2651,6 +2859,66 @@ export default function Home() {
                 className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs py-2 rounded-xl transition-all glow-border"
               >
                 {profile.language === "ru" ? "Создать" : "Create"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* CASE STUDY MODAL */}
+      {showCaseStudyModal && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-40 flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl max-w-2xl w-full flex flex-col gap-4 shadow-2xl slide-up max-h-[85vh]">
+            <div className="flex justify-between items-center border-b border-slate-800 pb-2">
+              <h3 className="font-bold text-white text-base flex items-center gap-2">
+                <Sparkles size={16} className="text-emerald-400 animate-pulse" />
+                {profile.language === "ru" ? `Кейс клиента: ${selectedCaseStudyProspect?.name}` : `Client Case Study: ${selectedCaseStudyProspect?.name}`}
+              </h3>
+              <button
+                onClick={() => setShowCaseStudyModal(false)}
+                className="text-slate-400 hover:text-white transition-colors cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="overflow-y-auto flex-1 bg-slate-950 p-4 rounded-xl border border-slate-900/60 max-h-[50vh]">
+              {isGeneratingCaseStudy ? (
+                <div className="flex flex-col items-center justify-center py-10 gap-3">
+                  <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+                  <span className="text-xs text-slate-400 animate-pulse font-mono">
+                    {profile.language === "ru" ? "ИИ рассчитывает ROI и пишет кейс..." : "AI calculating ROI and drafting case study..."}
+                  </span>
+                </div>
+              ) : (
+                <pre className="text-slate-200 font-sans text-xs whitespace-pre-wrap leading-relaxed">
+                  {caseStudyMarkdown}
+                </pre>
+              )}
+            </div>
+
+            <div className="flex gap-3 border-t border-slate-800 pt-3 mt-1">
+              <button
+                onClick={() => setShowCaseStudyModal(false)}
+                className="flex-1 bg-slate-950 hover:bg-slate-800 text-slate-400 hover:text-white font-bold text-xs py-2 rounded-xl transition-colors border border-slate-850 cursor-pointer"
+              >
+                {profile.language === "ru" ? "Закрыть" : "Close"}
+              </button>
+              <button
+                onClick={() => copyToClipboard(caseStudyMarkdown, 888)}
+                disabled={isGeneratingCaseStudy}
+                className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs py-2 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 glow-border"
+              >
+                {copiedIndex === 888 ? (
+                  <>
+                    <Check size={14} />
+                    {profile.language === "ru" ? "Скопировано!" : "Copied!"}
+                  </>
+                ) : (
+                  <>
+                    <Copy size={14} />
+                    {profile.language === "ru" ? "Копировать Markdown" : "Copy Markdown"}
+                  </>
+                )}
               </button>
             </div>
           </div>

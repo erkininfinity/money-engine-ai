@@ -136,7 +136,11 @@ function getDemoPaths(language: "ru" | "en") {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const validatedProfile = profileSchema.safeParse(body);
+    const isNested = body.profile !== undefined;
+    const profileData = isNested ? body.profile : body;
+    const mode = body.mode || "mvp";
+
+    const validatedProfile = profileSchema.safeParse(profileData);
 
     if (!validatedProfile.success) {
       return NextResponse.json(
@@ -156,7 +160,7 @@ export async function POST(req: Request) {
 
     const playbooks = loadSeedPlaybooks();
     const systemPrompt = PATH_GENERATOR_SYSTEM_PROMPT;
-    const userPrompt = formatPathGeneratorUserPrompt(profile, playbooks);
+    const userPrompt = formatPathGeneratorUserPrompt(profile, playbooks, mode);
 
     const response = await openai.chat.completions.create({
       model: openaiModel,
@@ -186,10 +190,11 @@ export async function POST(req: Request) {
             painUrgency: Number(pathItem.score.painUrgency) || 0,
             lowStartupCost: Number(pathItem.score.lowStartupCost) || 0,
             executionSimplicity: Number(pathItem.score.executionSimplicity) || 0,
+            repeatRevenuePotential: Number(pathItem.score.repeatRevenuePotential) || undefined,
             whyThisScore: Array.isArray(pathItem.score.whyThisScore) ? pathItem.score.whyThisScore : [],
             biggestRisk: String(pathItem.score.biggestRisk || ""),
             fastestValidationStep: String(pathItem.score.fastestValidationStep || ""),
-          });
+          }, mode);
         }
         return pathItem;
       });

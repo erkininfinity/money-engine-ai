@@ -13,7 +13,8 @@ CRITICAL RULES:
 
 export function formatPathGeneratorUserPrompt(
   profile: FounderProfileLite,
-  seedPlaybooks: RevenuePlaybook[]
+  seedPlaybooks: RevenuePlaybook[],
+  mode: "mvp" | "growth" = "mvp"
 ): string {
   const serializedPlaybooks = seedPlaybooks
     .map(
@@ -42,6 +43,7 @@ export function formatPathGeneratorUserPrompt(
 - Sales Comfort Level: ${profile.salesComfortLevel}
 - Preferred Work Type: ${profile.preferredWorkType}
 - Constraints: ${profile.constraints.join("\n  ")}
+- Scoring Mode: ${mode}
 
 Seed Playbooks (Use these as reference templates or adapt them to match the founder's skills and local market):
 ${serializedPlaybooks}
@@ -64,6 +66,7 @@ Based on this, generate 3 to 5 B2B Revenue Paths. Match the following JSON schem
         "painUrgency": 1-10 value,
         "lowStartupCost": 1-10 value,
         "executionSimplicity": 1-10 value,
+        ${mode === "growth" ? `"repeatRevenuePotential": 1-10 value (scoring the predictability, LTV, or subscription potential),` : ""}
         "whyThisScore": ["Explanations for the scores"],
         "biggestRisk": "The main risk or bottleneck for the founder in this path",
         "fastestValidationStep": "The single fastest action to check if anyone wants this"

@@ -63,6 +63,7 @@ export const fitScoreSchema = z.object({
   painUrgency: z.number(),
   lowStartupCost: z.number(),
   executionSimplicity: z.number(),
+  repeatRevenuePotential: z.number().optional(),
   whyThisScore: z.array(z.string()),
   biggestRisk: z.string(),
   fastestValidationStep: z.string(),
