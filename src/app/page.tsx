@@ -42,6 +42,7 @@ const initialProfile: FounderProfileLite = {
   language: "ru",
   targetMonthlyIncome: 300000,
   currency: "KZT",
+  segment: "freelance",
   skills: ["Make.com / Integromat automation", "n8n workflows"],
   pastExperience: ["built several personal automations"],
   availableHoursPerWeek: 12,
@@ -149,6 +150,7 @@ export default function Home() {
   const [retainersData, setRetainersData] = useState<any | null>(null);
   const [isGeneratingRetainers, setIsGeneratingRetainers] = useState(false);
   const [showRetainersModal, setShowRetainersModal] = useState(false);
+  const [showWebhookToast, setShowWebhookToast] = useState(false);
 
   // Load projects from DB
   const fetchProjects = async () => {
@@ -320,6 +322,32 @@ export default function Home() {
     }
   };
 
+  const triggerOutgoingWebhook = async (event: string, data: any) => {
+    const savedWebhook = localStorage.getItem("money_engine_webhook_url");
+    if (!savedWebhook) return;
+
+    try {
+      await fetch("/api/webhook", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          webhookUrl: savedWebhook,
+          payload: {
+            event,
+            timestamp: Date.now(),
+            projectId: activeProject?.id,
+            projectName: activeProject?.name,
+            data
+          }
+        })
+      });
+      setShowWebhookToast(true);
+      setTimeout(() => setShowWebhookToast(false), 3000);
+    } catch (e) {
+      console.error("Failed to trigger outgoing webhook:", e);
+    }
+  };
+
   const handleAddProspect = async () => {
     if (!activeProject?.id || !newProspectName.trim() || !newProspectContact.trim()) return;
     try {
@@ -342,6 +370,7 @@ export default function Home() {
         setNewProspectContact("");
         setNewProspectNotes("");
         setNewProspectStatus("identified");
+        triggerOutgoingWebhook("prospect_added", data);
       }
     } catch (e) {
       console.error(e);
@@ -358,6 +387,10 @@ export default function Home() {
       });
       if (res.ok) {
         setProspectsList(prospectsList.map(p => p.id === id ? { ...p, status: newStatus, updatedAt: Date.now() } : p));
+        const updatedProspect = prospectsList.find(p => p.id === id);
+        if (updatedProspect) {
+          triggerOutgoingWebhook("prospect_status_updated", { ...updatedProspect, status: newStatus });
+        }
       }
     } catch (e) {
       console.error(e);
@@ -373,6 +406,10 @@ export default function Home() {
       });
       if (res.ok) {
         setProspectsList(prospectsList.map(p => p.id === id ? { ...p, notes, updatedAt: Date.now() } : p));
+        const updatedProspect = prospectsList.find(p => p.id === id);
+        if (updatedProspect) {
+          triggerOutgoingWebhook("prospect_notes_updated", { ...updatedProspect, notes });
+        }
       }
     } catch (e) {
       console.error(e);
@@ -388,6 +425,10 @@ export default function Home() {
       });
       if (res.ok) {
         setProspectsList(prospectsList.map(p => p.id === id ? { ...p, objection, updatedAt: Date.now() } : p));
+        const updatedProspect = prospectsList.find(p => p.id === id);
+        if (updatedProspect) {
+          triggerOutgoingWebhook("prospect_objection_updated", { ...updatedProspect, objection });
+        }
       }
     } catch (e) {
       console.error(e);
@@ -397,11 +438,15 @@ export default function Home() {
   const handleDeleteProspect = async (id: string) => {
     if (!confirm(profile.language === "ru" ? "Удалить этого клиента?" : "Delete this prospect?")) return;
     try {
+      const deletedProspect = prospectsList.find(p => p.id === id);
       const res = await fetch(`/api/prospects?id=${id}`, {
         method: "DELETE"
       });
       if (res.ok) {
         setProspectsList(prospectsList.filter(p => p.id !== id));
+        if (deletedProspect) {
+          triggerOutgoingWebhook("prospect_deleted", deletedProspect);
+        }
       }
     } catch (e) {
       console.error(e);
@@ -1374,6 +1419,24 @@ export default function Home() {
                   </div>
 
                   <div className="flex flex-col gap-2">
+                    <label className="text-sm font-semibold text-slate-300">Target Segment / Сегмент деятельности</label>
+                    <select
+                      value={profile.segment || "freelance"}
+                      onChange={(e) => updateProfile({ ...profile, segment: e.target.value as any })}
+                      className="glass-input"
+                    >
+                      <option value="freelance" className="bg-slate-900 text-white">Freelance Services (Фриланс)</option>
+                      <option value="ai_consulting" className="bg-slate-900 text-white">AI Consulting (ИИ-Консалтинг)</option>
+                      <option value="local_business" className="bg-slate-900 text-white">Local Business Growth (Локальный бизнес)</option>
+                      <option value="digital_product" className="bg-slate-900 text-white">Digital Product Validation (Инфопродукты)</option>
+                      <option value="creator" className="bg-slate-900 text-white">Creator / Expert Offers (Блоги и эксперты)</option>
+                      <option value="microsaas" className="bg-slate-900 text-white">Micro-SaaS Pre-sales (Микро-SaaS)</option>
+                      <option value="agency" className="bg-slate-900 text-white">Agency Growth (B2B Агентство)</option>
+                      <option value="career" className="bg-slate-900 text-white">Career Income Boost (Карьерный рост)</option>
+                    </select>
+                  </div>
+
+                  <div className="flex flex-col gap-2">
                     <label className="text-sm font-semibold text-slate-300">Preferred Work Type / Вид работы</label>
                     <select
                       value={profile.preferredWorkType}
@@ -1422,6 +1485,142 @@ export default function Home() {
                     label={profile.language === "ru" ? "Ограничения (Constraints)" : "Constraints"}
                     suggestions={constraintSuggestions}
                   />
+                </div>
+
+                {/* DYNAMIC SEGMENT ETHICS & RISKS COMPLIANCE BOX */}
+                <div className="bg-slate-950/40 border border-slate-900/50 rounded-xl p-4.5 mb-6 text-xs flex flex-col gap-3 slide-up">
+                  <h4 className="font-bold text-white flex items-center gap-1.5 uppercase text-[10px] tracking-wider text-indigo-400">
+                    <ShieldAlert size={14} />
+                    {profile.language === "ru" ? "Этика и Риски сегмента" : "Segment Ethics & Risk Compliance"}
+                  </h4>
+                  
+                  {/* Freelance */}
+                  {(profile.segment === "freelance" || !profile.segment) && (
+                    <div className="flex flex-col gap-2">
+                      <p className="text-slate-300">
+                        {profile.language === "ru" 
+                          ? "💡 Правило: Продавайте только свои реальные часы и опыт. Фокусируйтесь на понятном результате." 
+                          : "💡 Rule: Sell only your actual hours and proven capability. Focus on clear, immediate outcomes."}
+                      </p>
+                      <p className="text-slate-500 italic">
+                        {profile.language === "ru"
+                          ? "⚠️ Риск: Перегрузка из-за продажи времени. Планируйте переход к ретейнерам вовремя."
+                          : "⚠️ Risk: Burning out by trading hours for money. Plan to move to retainers early."}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* AI Consulting */}
+                  {profile.segment === "ai_consulting" && (
+                    <div className="flex flex-col gap-2">
+                      <p className="text-slate-300">
+                        {profile.language === "ru" 
+                          ? "💡 Правило: Не обещайте полную замену людей нейросетями. Говорите об ускорении рутины." 
+                          : "💡 Rule: Do not promise complete human replacement with AI. Sell automation of routine tasks instead."}
+                      </p>
+                      <p className="text-slate-500 italic">
+                        {profile.language === "ru"
+                          ? "⚠️ Риск: Высокие ожидания клиента. Продавайте сначала дешевый аудит, а не дорогое внедрение."
+                          : "⚠️ Risk: Overhyped client expectations. Always sell a diagnostic audit before high-ticket integration."}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Local Business */}
+                  {profile.segment === "local_business" && (
+                    <div className="flex flex-col gap-2">
+                      <p className="text-slate-300">
+                        {profile.language === "ru" 
+                          ? "💡 Правило: Уважайте локальную репутацию. Пишите клиентам вежливо, замеряя скорость ответа." 
+                          : "💡 Rule: Respect local community reputation. Contact prospects politely, pointing out specific leaks."}
+                      </p>
+                      <p className="text-slate-500 italic">
+                        {profile.language === "ru"
+                          ? "⚠️ Риск: Малый объем рынка в конкретном городе. Диверсифицируйте ниши."
+                          : "⚠️ Risk: Limited market volume within a specific region. Be ready to expand to neighboring areas."}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Digital Product */}
+                  {profile.segment === "digital_product" && (
+                    <div className="flex flex-col gap-2">
+                      <p className="text-slate-300">
+                        {profile.language === "ru" 
+                          ? "💡 Правило: Проверяйте спрос до написания курса/книги. Продавайте предзаказы." 
+                          : "💡 Rule: Verify market demand before writing the book/course. Sell pre-orders first."}
+                      </p>
+                      <p className="text-slate-500 italic">
+                        {profile.language === "ru"
+                          ? "⚠️ Риск: Создание продукта, который никому не нужен. Сделайте форму предзаказа."
+                          : "⚠️ Risk: Building a product no one wants to buy. Create a simple pre-sale landing page first."}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Creator */}
+                  {profile.segment === "creator" && (
+                    <div className="flex flex-col gap-2">
+                      <p className="text-slate-300">
+                        {profile.language === "ru" 
+                          ? "💡 Правило: Не спамьте лояльную аудиторию массовыми рассылками. Запускайте опросники." 
+                          : "💡 Rule: Do not spam your loyal audience with cold sales pitches. Use short diagnostic surveys."}
+                      </p>
+                      <p className="text-slate-500 italic">
+                        {profile.language === "ru"
+                          ? "⚠️ Риск: Выгорание лояльности аудитории. Предлагайте только то, в чем лично уверены."
+                          : "⚠️ Risk: Damaging reader trust. Pitch only offers you personally stand behind."}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Micro-SaaS */}
+                  {profile.segment === "microsaas" && (
+                    <div className="flex flex-col gap-2">
+                      <p className="text-slate-300">
+                        {profile.language === "ru" 
+                          ? "💡 Правило: Не придумывайте отзывы и скриншоты. Показывайте интерактивные макеты." 
+                          : "💡 Rule: Never invent fake reviews or mock metrics. Showcase interactive layout mockups."}
+                      </p>
+                      <p className="text-slate-500 italic">
+                        {profile.language === "ru"
+                          ? "⚠️ Риск: Затяжная разработка без продаж. Запустите сбор предоплаты за ранний доступ."
+                          : "⚠️ Risk: Endless coding without actual buyers. Charge deposits for early-adopter access."}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Agency */}
+                  {profile.segment === "agency" && (
+                    <div className="flex flex-col gap-2">
+                      <p className="text-slate-300">
+                        {profile.language === "ru" 
+                          ? "💡 Правило: Не используйте серые автодозвоны или спам-парсеры. Делайте персонализированные касания." 
+                          : "💡 Rule: Avoid spam scrapers or mass auto-dialers. Rely strictly on high-personalization touchpoints."}
+                      </p>
+                      <p className="text-slate-500 italic">
+                        {profile.language === "ru"
+                          ? "⚠️ Риск: Проблемы с доставкой писем и баны аккаунтов. Соблюдайте лимиты."
+                          : "⚠️ Risk: Spam filters and account bans. Strictly follow safe outreach limits."}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Career Boost */}
+                  {profile.segment === "career" && (
+                    <div className="flex flex-col gap-2">
+                      <p className="text-slate-300">
+                        {profile.language === "ru" 
+                          ? "💡 Правило: Никогда не фальсифицируйте резюме. Делайте упор на выполненные проекты." 
+                          : "💡 Rule: Never falsify your resume. Highlight real, verifiable B2B projects and audits."}
+                      </p>
+                      <p className="text-slate-500 italic">
+                        {profile.language === "ru"
+                          ? "⚠️ Риск: Потеря времени на стандартные отклики. Выходите напрямую на руководителей (ЛПР)."
+                          : "⚠️ Risk: Getting lost in generic HR resume filters. Reach out directly to hiring managers."}
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 <button
@@ -2922,6 +3121,16 @@ export default function Home() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* WEBHOOK TOAST NOTIFICATION */}
+      {showWebhookToast && (
+        <div className="fixed bottom-5 right-5 bg-emerald-950 border border-emerald-500/30 text-emerald-300 px-4 py-3 rounded-2xl shadow-2xl z-50 flex items-center gap-2 animate-bounce">
+          <Sparkles size={16} className="text-emerald-400" />
+          <span className="text-xs font-bold font-mono">
+            {profile.language === "ru" ? "Вебхук успешно отправлен! 🚀" : "Webhook triggered successfully! 🚀"}
+          </span>
         </div>
       )}
 

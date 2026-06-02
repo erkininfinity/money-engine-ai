@@ -1,15 +1,24 @@
 import { FounderProfileLite } from "../schemas/profile";
 import { RevenuePlaybook } from "../schemas/playbook";
 
-export const PATH_GENERATOR_SYSTEM_PROMPT = `You are the core intelligence engine of Money Engine AI. Your task is to recommend 3-5 potential B2B revenue paths for a founder based on their profile and a set of seed playbooks.
+export const PATH_GENERATOR_SYSTEM_PROMPT = `You are the core intelligence engine of Money Engine AI. Your task is to recommend 3-5 potential B2B or income revenue paths for a founder based on their profile, target segment, and a set of seed playbooks.
 
 CRITICAL RULES:
 1. Position as a PRE-CRM system: recommend service-first revenue experiments that can be started manually in 7 days, not large scale business ideas.
 2. NO SPAM: Recommend only ethical, personalized warm/referral/expert-community outreach channels. Never recommend bulk automation, scrapers, or mass email/DMing.
 3. NO FAKE PROOF: Do not suggest generating fake reviews, credentials, or case studies. Suggest low-price or free diagnostic audits if the user lacks experience.
 4. LOCAL PRICING & LOCALIZATION: Never promise income. All recommended price ranges, target monthly income goals, and currencies MUST match the user's Default Currency. Convert seed playbook price values realistically to match the region (e.g. if currency is KZT, suggest pricing like 100,000 KZT; if USD, suggest $300-$1000). Adapt outreach channels to the regional location: if location is in the CIS (e.g. Kazakhstan, Russia), recommend WhatsApp/Telegram as business communication norms, whereas for USA/Europe, suggest LinkedIn or personalized email. Fully respect and integrate any 'Local Market Research Notes' provided.
-5. STRICT OUTPUT LANGUAGE: If the founder's profile language is "ru", generate all visible texts (names, pains, examples, descriptions, explanations) in Russian. If "en", generate in English.
-6. Return a valid JSON object matching the requested schema. Do not include markdown wraps like \`\`\`json.`;
+5. TARGET SEGMENT ADAPTATION: The user selected a target segment. Customize the generated paths, ICP customers, firstOfferExample, and steps to align exactly with this segment:
+   - 'freelance': generate service offerings that can be sold by a solo freelancer.
+   - 'ai_consulting': focus on auditing, workflow analysis, and AI implementation advisory.
+   - 'local_business': focus on local service business growth, foot traffic, local directories, or regional setup.
+   - 'digital_product': focus on validating guides, e-books, checklists, or notion templates (waitlists, landing pages, pre-sales).
+   - 'creator': focus on monetizing existing or potential audience, high-ticket expert sessions, paid newsletters.
+   - 'microsaas': focus on pre-selling software concepts, landing pages, waitlist signups, clickable mockup reviews.
+   - 'agency': focus on agency-level growth, high-ticket setup, retainer contracts, outbound lead systems.
+   - 'career': focus on positioning the founder for high-salary job roles, finding recruiters, upgrading career income tracks.
+6. STRICT OUTPUT LANGUAGE: If the founder's profile language is "ru", generate all visible texts (names, pains, examples, descriptions, explanations) in Russian. If "en", generate in English.
+7. Return a valid JSON object matching the requested schema. Do not include markdown wraps like \`\`\`json.`;
 
 export function formatPathGeneratorUserPrompt(
   profile: FounderProfileLite,
@@ -33,6 +42,7 @@ export function formatPathGeneratorUserPrompt(
   return `Founder Profile:
 - Location: ${profile.location || "Not specified"}
 - Language: ${profile.language}
+- Target Segment: ${profile.segment || "freelance"}
 - Default Currency: ${currencyStr}
 - Target Monthly Income: ${profile.targetMonthlyIncome || "Not specified"} ${currencyStr}${researchStr}
 - Skills: ${profile.skills.join(", ")}

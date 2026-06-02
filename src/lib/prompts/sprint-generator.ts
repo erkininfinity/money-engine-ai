@@ -10,8 +10,13 @@ CRITICAL RULES:
 3. NO SPAM IN OUTREACH: Messages must be personal, short (1-2 paragraphs), respectful, asking permission before sharing details, and suggesting honest trust builders (like a free audit or diagnostic mystery test).
 4. LOCALIZATION & CHANNELS: Schedule outreach and list-building actions specifically using tools and sources that are valid for the user's region. If the location is in the CIS (Kazakhstan/Russia), direct outreach should rely on WhatsApp or Instagram DM (as email is rarely used for B2B there), and directories like 2GIS should be recommended. For Western users, use LinkedIn/Email. All pricing information must match the Default Currency specified. Fully respect and integrate 'Local Market Research Notes' if provided.
 5. GROWTH MODE INTEGRATION: If the generated sprint is under "growth" mode, ensure the daily action steps include Customer Success checklists (confirming setup success, reviewing client satisfaction, scheduling a quick check-in call) and the generated outreach scripts include Referral Loops (asking paid/happy clients for warm introductions or recommendations to similar businesses).
-6. STRICT OUTPUT LANGUAGE: If the profile language is "ru", translate the entire JSON output values to Russian. If "en", generate in English.
-7. Return a valid JSON object matching the requested schema. Do not include markdown wraps.`;
+6. TARGET SEGMENT ACTIONS: Adapt day-to-day actions and scripts to the target segment:
+   - 'career': Instead of searching for B2B clients, the daily actions should involve finding target companies/roles, updating resume/LinkedIn profile with custom positioning, identifying decision-makers/hiring managers/recruiters, and reaching out to request warm informational chats. Outreach scripts must be networking requests, not sales pitches.
+   - 'microsaas': Daily actions should focus on creating a mock-up/prototype, setting up a waitlist page, and sharing the concept in communities to collect email signups.
+   - 'digital_product': Actions should focus on drafting the outline, setting up a landing page/payment link, and doing pre-sales.
+   - 'creator': Actions should focus on scheduling 1-on-1 expert sessions or paid consulting from existing audience/subscribers.
+7. STRICT OUTPUT LANGUAGE: If the profile language is "ru", translate the entire JSON output values to Russian. If "en", generate in English.
+8. Return a valid JSON object matching the requested schema. Do not include markdown wraps.`;
 
 export function formatSprintGeneratorUserPrompt(
   profile: FounderProfileLite,
@@ -26,6 +31,7 @@ export function formatSprintGeneratorUserPrompt(
 
   return `Founder Profile:
 - Skills: ${profile.skills.join(", ")}
+- Target Segment: ${profile.segment || "freelance"}
 - Available Hours Per Week: ${profile.availableHoursPerWeek}
 - Startup Budget Level: ${profile.startupBudgetLevel}
 - Sales Comfort Level: ${profile.salesComfortLevel}

@@ -66,20 +66,20 @@ describe("Revenue Fit Score Calculation", () => {
       fastestValidationStep: "Test",
     });
 
-    // clamped speed: 10 * 2.5 = 25
+    // clamped speed: 10 * 3 = 30
     // clamped reach: 0 * 2 = 0
-    // fit: 5 * 2 = 10
+    // fit: 5 * 1.5 = 7.5
     // urgency: 5 * 1.5 = 7.5
     // cost: 5 * 1 = 5
     // simplicity: 5 * 1 = 5
-    // Sum = 25 + 0 + 10 + 7.5 + 5 + 5 = 52.5 -> rounds to 53
-    expect(score.total).toBe(53);
+    // Sum = 30 + 0 + 7.5 + 7.5 + 5 + 5 = 55
+    expect(score.total).toBe(55);
     expect(score.speedToFirstRevenue).toBe(10);
     expect(score.abilityToReachBuyers).toBe(0);
   });
 
   it("should apply correct weights to categories", () => {
-    // Test that speedToFirstRevenue (weight 25%) affects score more than executionSimplicity (weight 10%)
+    // Test that speedToFirstRevenue (weight 30%) affects score more than executionSimplicity (weight 10%)
     const scoreHighSpeed = calculateFitScore({
       speedToFirstRevenue: 10,
       abilityToReachBuyers: 5,
@@ -104,10 +104,10 @@ describe("Revenue Fit Score Calculation", () => {
       fastestValidationStep: "Test",
     });
 
-    // scoreHighSpeed: 10 * 2.5 + 5 * 2 + 5 * 2 + 5 * 1.5 + 5 * 1 + 0 * 1 = 25 + 10 + 10 + 7.5 + 5 + 0 = 57.5 -> rounds to 58
-    // scoreHighSimplicity: 0 * 2.5 + 5 * 2 + 5 * 2 + 5 * 1.5 + 5 * 1 + 10 * 1 = 0 + 10 + 10 + 7.5 + 5 + 10 = 42.5 -> rounds to 43
-    expect(scoreHighSpeed.total).toBe(58);
-    expect(scoreHighSimplicity.total).toBe(43);
+    // scoreHighSpeed: 10 * 3.0 + 5 * 2 + 5 * 1.5 + 5 * 1.5 + 5 * 1 + 0 * 1 = 30 + 10 + 7.5 + 7.5 + 5 + 0 = 60
+    // scoreHighSimplicity: 0 * 3.0 + 5 * 2 + 5 * 1.5 + 5 * 1.5 + 5 * 1 + 10 * 1 = 0 + 10 + 7.5 + 7.5 + 5 + 10 = 40
+    expect(scoreHighSpeed.total).toBe(60);
+    expect(scoreHighSimplicity.total).toBe(40);
     expect(scoreHighSpeed.total).toBeGreaterThan(scoreHighSimplicity.total);
   });
 });
