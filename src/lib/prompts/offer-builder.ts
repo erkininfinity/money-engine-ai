@@ -7,18 +7,25 @@ CRITICAL RULES:
 1. No false claims or fake reviews/case studies.
 2. The offer must be specific, testable, and bounded.
 3. Exclude complex, unmanageable work (e.g. custom coding if the founder is a no-code developer, or 24/7 support if they only have 10 hours/week).
-4. STRICT OUTPUT LANGUAGE: If the profile language is "ru", translate the entire JSON output values to Russian. If "en", generate in English.
-5. Return a valid JSON object matching the requested schema. Do not include markdown wraps.`;
+4. LOCALIZATION: All pricing models and currencies MUST match the user's Default Currency. Suggest price values that align realistically with the user's region and currency (e.g. KZT, USD, EUR, etc.). Fully respect and integrate any 'Local Market Research Notes' provided.
+5. STRICT OUTPUT LANGUAGE: If the profile language is "ru", translate the entire JSON output values to Russian. If "en", generate in English.
+6. Return a valid JSON object matching the requested schema. Do not include markdown wraps.`;
 
 export function formatOfferBuilderUserPrompt(
   profile: FounderProfileLite,
   selectedPath: GeneratedPath
 ): string {
+  const currencyStr = profile.currency || "KZT";
+  const researchStr = profile.marketResearchNotes 
+    ? `\n- Local Market Research Notes: ${profile.marketResearchNotes}` 
+    : "";
+
   return `Founder Profile:
 - Skills: ${profile.skills.join(", ")}
 - Available Hours Per Week: ${profile.availableHoursPerWeek}
 - Startup Budget Level: ${profile.startupBudgetLevel}
 - Constraints: ${profile.constraints.join("\n  ")}
+- Default Currency: ${currencyStr}${researchStr}
 
 Selected Revenue Path:
 - Name: ${selectedPath.name}
@@ -37,7 +44,7 @@ Based on this, construct a detailed Offer Draft. Match the following JSON schema
   "mechanism": "The method or tools used (e.g., Make.com integration)",
   "deliverables": ["Deliverable 1", "Deliverable 2"],
   "exclusions": ["Exclude item 1", "Exclude item 2"],
-  "priceRange": "Realistic price range in local currency (e.g., 49,000 - 99,000 KZT)",
+  "priceRange": "Realistic price range in local currency (e.g., 49,000 - 99,000 ${currencyStr})",
   "proofNeeded": ["Specific proof or case study style needed to sell this"],
   "trustBuilders": ["Ethical trust building steps (e.g. recording a 3-minute video analysis of one process)"],
   "objections": ["Objection 1 and how the founder should answer it"],

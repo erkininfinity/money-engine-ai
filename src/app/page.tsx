@@ -41,6 +41,7 @@ const initialProfile: FounderProfileLite = {
   location: "Astana, Kazakhstan",
   language: "ru",
   targetMonthlyIncome: 300000,
+  currency: "KZT",
   skills: ["Make.com / Integromat automation", "n8n workflows"],
   pastExperience: ["built several personal automations"],
   availableHoursPerWeek: 12,
@@ -67,9 +68,15 @@ const initialMetrics: SprintMetrics = {
 };
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<"generator" | "active_sprint" | "library" | "workspace">("generator");
+  const [activeTab, setActiveTab] = useState<"generator" | "active_sprint" | "library" | "workspace" | "market_research">("generator");
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [profile, setProfile] = useState<FounderProfileLite>(initialProfile);
+  
+  // Market Research states
+  const [researchNiche, setResearchNiche] = useState<string>("WhatsApp automation");
+  const [researchLocation, setResearchLocation] = useState<string>("Astana, Kazakhstan");
+  const [researchReport, setResearchReport] = useState<any | null>(null);
+  const [researchLoading, setResearchLoading] = useState<boolean>(false);
   
   // Loading states
   const [loading, setLoading] = useState(false);
@@ -777,6 +784,61 @@ export default function Home() {
     }
   };
 
+  const handleAnalyzeMarket = async () => {
+    if (!researchNiche || !researchLocation) return;
+    setResearchLoading(true);
+    try {
+      const res = await fetch("/api/market-research", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          niche: researchNiche,
+          location: researchLocation,
+          language: profile.language
+        })
+      });
+      const data = await res.json();
+      if (data && data.averagePriceRange) {
+        setResearchReport(data);
+      } else {
+        alert(profile.language === "ru" 
+          ? "Не удалось сгенерировать отчет. Попробуйте еще раз." 
+          : "Failed to generate market research. Please try again.");
+      }
+    } catch (e) {
+      console.error(e);
+      alert(profile.language === "ru" ? "Ошибка при анализе рынка." : "Error analyzing market.");
+    } finally {
+      setResearchLoading(false);
+    }
+  };
+
+  const handleApplyResearch = () => {
+    if (!researchReport) return;
+    
+    const notesText = `[Niche: ${researchReport.niche} in ${researchReport.location}] ` +
+      `Price range: ${researchReport.averagePriceRange}. ` +
+      `Competitors: ${researchReport.competitorAnalysis} ` +
+      `Outreach Norms: ${researchReport.outreachNorms} ` +
+      `Objections: ${researchReport.objections.join("; ")}`;
+      
+    const updated = {
+      ...profile,
+      marketResearchNotes: notesText,
+      skills: profile.skills.includes(researchReport.niche) 
+        ? profile.skills 
+        : [...profile.skills, researchReport.niche]
+    };
+    
+    updateProfile(updated);
+    
+    alert(profile.language === "ru"
+      ? "Исследования успешно сохранены и применены к профилю основателя!"
+      : "Research notes applied to your founder profile!");
+      
+    setActiveTab("generator");
+  };
+
   const calculateSprintProgress = () => {
     if (!activeSprint) return 0;
     let totalActions = 0;
@@ -1047,6 +1109,18 @@ export default function Home() {
             {profile.language === "ru" ? "Рабочая область" : "Workspace"}
           </button>
 
+          <button
+            onClick={() => setActiveTab("market_research")}
+            className={`flex items-center gap-1.5 text-sm font-semibold py-1.5 px-3 rounded-lg transition-all cursor-pointer ${
+              activeTab === "market_research"
+                ? "bg-indigo-600 text-white"
+                : "text-slate-400 hover:text-slate-200"
+            }`}
+          >
+            <Search size={14} />
+            {profile.language === "ru" ? "Анализ рынка" : "Market Research"}
+          </button>
+
           {activeSprint && (
             <button
               onClick={() => setActiveTab("active_sprint")}
@@ -1150,6 +1224,21 @@ export default function Home() {
                       placeholder="e.g. Astana, Kazakhstan"
                       className="glass-input"
                     />
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    <label className="text-sm font-semibold text-slate-300">Currency / Валюта расчетов</label>
+                    <select
+                      value={profile.currency || "KZT"}
+                      onChange={(e) => updateProfile({ ...profile, currency: e.target.value })}
+                      className="glass-input"
+                    >
+                      <option value="KZT" className="bg-slate-900 text-white">KZT (₸) — Казахстан</option>
+                      <option value="USD" className="bg-slate-900 text-white">USD ($) — Global</option>
+                      <option value="EUR" className="bg-slate-900 text-white">EUR (€) — Europe</option>
+                      <option value="RUB" className="bg-slate-900 text-white">RUB (₽) — Россия</option>
+                      <option value="GBP" className="bg-slate-900 text-white">GBP (£) — United Kingdom</option>
+                    </select>
                   </div>
 
                   <div className="flex flex-col gap-2">
@@ -2171,6 +2260,182 @@ export default function Home() {
                 </div>
               </div>
             )}
+          </section>
+        )}
+
+        {/* TAB 5: LOCAL MARKET RESEARCH ASSISTANT */}
+        {activeTab === "market_research" && (
+          <section className="slide-up flex flex-col gap-6">
+            <header className="border-b border-slate-900 pb-5">
+              <h2 className="text-2xl font-black text-white mb-1">
+                {profile.language === "ru" ? "🔍 Локальная аналитика рынка" : "🔍 Local Market Intelligence"}
+              </h2>
+              <p className="text-slate-400 text-xs">
+                {profile.language === "ru"
+                  ? "Исследуйте цены, конкурентов и каналы связи в вашем городе с помощью умного веб-поиска."
+                  : "Analyze B2B pricing, competitor landscapes, and regional outreach norms using real-time search."}
+              </p>
+            </header>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+              {/* Search Settings Card */}
+              <div className="glass-card p-6 flex flex-col gap-5 md:col-span-1">
+                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  {profile.language === "ru" ? "Параметры поиска" : "Search Parameters"}
+                </h3>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">
+                    {profile.language === "ru" ? "Ниша / B2B Услуга" : "Niche / B2B Service"}
+                  </label>
+                  <input
+                    type="text"
+                    value={researchNiche}
+                    onChange={(e) => setResearchNiche(e.target.value)}
+                    placeholder="e.g. WhatsApp Automation"
+                    className="glass-input text-xs"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">
+                    {profile.language === "ru" ? "Город / Локация" : "City / Location"}
+                  </label>
+                  <input
+                    type="text"
+                    value={researchLocation}
+                    onChange={(e) => setResearchLocation(e.target.value)}
+                    placeholder="e.g. Astana, Kazakhstan"
+                    className="glass-input text-xs"
+                  />
+                </div>
+
+                <button
+                  onClick={handleAnalyzeMarket}
+                  disabled={researchLoading}
+                  className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-850 text-white font-bold py-2.5 px-4 rounded-xl transition-all cursor-pointer shadow-lg hover:shadow-indigo-500/20 glow-border text-xs mt-2"
+                >
+                  {researchLoading ? (
+                    <>
+                      <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      {profile.language === "ru" ? "Анализируем..." : "Researching..."}
+                    </>
+                  ) : (
+                    <>
+                      <Search size={14} />
+                      {profile.language === "ru" ? "Исследовать рынок" : "Analyze Local Market"}
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* Research Report Visualizer */}
+              <div className="md:col-span-2 flex flex-col gap-6">
+                {!researchReport ? (
+                  <div className="glass-card p-12 flex flex-col items-center justify-center text-center gap-3">
+                    <Search size={36} className="text-slate-600 animate-pulse" />
+                    <div>
+                      <h4 className="font-bold text-slate-400 text-sm">
+                        {profile.language === "ru" ? "Анализ еще не запущен" : "No Market Research Yet"}
+                      </h4>
+                      <p className="text-xs text-slate-500 max-w-xs mt-1 leading-relaxed">
+                        {profile.language === "ru"
+                          ? "Введите нишу и город слева, чтобы запустить ИИ-сканирование локальных цен и каналов аутрича."
+                          : "Enter a B2B niche and target location to scan pricing estimates, directories, and outreach norms."}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-6 slide-up">
+                    {/* Header info */}
+                    <div className="glass-card p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative overflow-hidden">
+                      <div>
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[10px] font-bold uppercase tracking-wider mb-1.5">
+                          {profile.language === "ru" ? "Рыночный отчет готов" : "Report Generated"}
+                        </span>
+                        <h3 className="text-lg font-black text-white">{researchReport.niche}</h3>
+                        <p className="text-slate-400 text-xs mt-0.5">{researchReport.location}</p>
+                      </div>
+                      
+                      <button
+                        onClick={handleApplyResearch}
+                        className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-4 py-2 rounded-xl transition-all cursor-pointer shadow hover:shadow-emerald-500/10 glow-border shrink-0"
+                      >
+                        ✓ {profile.language === "ru" ? "Применить к генератору" : "Apply to Generator"}
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Price Range */}
+                      <div className="glass-card p-5 flex flex-col gap-2.5 border-amber-500/10">
+                        <span className="text-[10px] uppercase font-bold text-amber-400 tracking-wider">
+                          {profile.language === "ru" ? "💰 Средние локальные цены" : "💰 Local Price Range"}
+                        </span>
+                        <div className="text-2xl font-black text-white">{researchReport.averagePriceRange}</div>
+                        <p className="text-slate-400 text-[11px] leading-relaxed mt-1">
+                          {profile.language === "ru"
+                            ? "Рекомендуемый ориентир стоимости для вашего региона при ручной валидации экспериментов."
+                            : "Recommended pricing benchmark for your target location to validate your services."}
+                        </p>
+                      </div>
+
+                      {/* Outreach Norms */}
+                      <div className="glass-card p-5 flex flex-col gap-2.5">
+                        <span className="text-[10px] uppercase font-bold text-indigo-400 tracking-wider">
+                          {profile.language === "ru" ? "📣 Нормы коммуникации" : "📣 Outreach Communication Norms"}
+                        </span>
+                        <div className="text-slate-200 text-xs font-semibold leading-relaxed">
+                          {researchReport.outreachNorms}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Competitor Landscape */}
+                    <div className="glass-card p-5 flex flex-col gap-2.5">
+                      <span className="text-[10px] uppercase font-bold text-indigo-400 tracking-wider">
+                        {profile.language === "ru" ? "📊 Состояние конкуренции" : "📊 Local Competitor Landscape"}
+                      </span>
+                      <p className="text-slate-300 text-xs leading-relaxed">
+                        {researchReport.competitorAnalysis}
+                      </p>
+                    </div>
+
+                    {/* Local Directories & objections */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Directories */}
+                      <div className="glass-card p-5 flex flex-col gap-3">
+                        <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                          {profile.language === "ru" ? "📋 Где искать лиды (Справочники)" : "📋 Leads Databases & Directories"}
+                        </span>
+                        <div className="flex flex-col gap-2">
+                          {researchReport.directories.map((dir: string, idx: number) => (
+                            <div key={idx} className="flex items-center gap-2 text-xs text-slate-300 bg-slate-950/20 border border-slate-900 px-3 py-2 rounded-xl">
+                              <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full" />
+                              <span>{dir}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Objections */}
+                      <div className="glass-card p-5 flex flex-col gap-3">
+                        <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                          {profile.language === "ru" ? "⚠️ Возражения местных клиентов" : "⚠️ Local Client Objections"}
+                        </span>
+                        <div className="flex flex-col gap-2">
+                          {researchReport.objections.map((obj: string, idx: number) => (
+                            <div key={idx} className="flex items-start gap-2 text-xs text-slate-300 bg-slate-950/20 border border-slate-900/60 p-2.5 rounded-xl">
+                              <span className="text-amber-500 font-bold shrink-0 mt-0.5">⚠️</span>
+                              <span className="leading-relaxed">{obj}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
           </section>
         )}
 

@@ -15,6 +15,8 @@ export const profileSchema = z.object({
   location: z.string().optional(),
   language: z.enum(["en", "ru"]),
   targetMonthlyIncome: z.number().optional(),
+  currency: z.string().optional(),
+  marketResearchNotes: z.string().optional(),
   skills: z.array(z.string()),
   pastExperience: z.array(z.string()),
   availableHoursPerWeek: z.number().min(1).max(168),

@@ -8,14 +8,20 @@ CRITICAL RULES:
 1. SPECIFICITY: Daily tasks must not be generic like "find clients". Instead, define a precise amount of actions (e.g. "Find 15 local dental clinics in Astana using Instagram and Google Maps").
 2. TIME-BOUND: Daily tasks must fit into the founder's available hours. Do not schedule tasks that take more time than they have.
 3. NO SPAM IN OUTREACH: Messages must be personal, short (1-2 paragraphs), respectful, asking permission before sharing details, and suggesting honest trust builders (like a free audit or diagnostic mystery test).
-4. STRICT OUTPUT LANGUAGE: If the profile language is "ru", translate the entire JSON output values to Russian. If "en", generate in English.
-5. Return a valid JSON object matching the requested schema. Do not include markdown wraps.`;
+4. LOCALIZATION & CHANNELS: Schedule outreach and list-building actions specifically using tools and sources that are valid for the user's region. If the location is in the CIS (Kazakhstan/Russia), direct outreach should rely on WhatsApp or Instagram DM (as email is rarely used for B2B there), and directories like 2GIS should be recommended. For Western users, use LinkedIn/Email. All pricing information must match the Default Currency specified. Fully respect and integrate 'Local Market Research Notes' if provided.
+5. STRICT OUTPUT LANGUAGE: If the profile language is "ru", translate the entire JSON output values to Russian. If "en", generate in English.
+6. Return a valid JSON object matching the requested schema. Do not include markdown wraps.`;
 
 export function formatSprintGeneratorUserPrompt(
   profile: FounderProfileLite,
   selectedPath: GeneratedPath,
   offer: OfferDraft
 ): string {
+  const currencyStr = profile.currency || "KZT";
+  const researchStr = profile.marketResearchNotes 
+    ? `\n- Local Market Research Notes: ${profile.marketResearchNotes}` 
+    : "";
+
   return `Founder Profile:
 - Skills: ${profile.skills.join(", ")}
 - Available Hours Per Week: ${profile.availableHoursPerWeek}
@@ -23,6 +29,7 @@ export function formatSprintGeneratorUserPrompt(
 - Sales Comfort Level: ${profile.salesComfortLevel}
 - Audience Access: ${profile.audienceAccess.join(", ")}
 - Constraints: ${profile.constraints.join("\n  ")}
+- Default Currency: ${currencyStr}${researchStr}
 
 Selected Path:
 - Name: ${selectedPath.name}
