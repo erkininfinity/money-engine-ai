@@ -6,8 +6,8 @@ We actively support and patch the latest version of Money Engine AI:
 
 | Version | Supported          |
 | ------- | ------------------ |
-| v0.1.x  | ✅ Yes             |
-| < v0.1  | ❌ No              |
+| v1.0.x  | Yes                |
+| < v1.0  | No                 |
 
 ---
 

@@ -1,125 +1,123 @@
 # Money Engine AI
 
-[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Next.js](https://img.shields.io/badge/Next.js-14+-black.svg)](https://nextjs.org/)
+[![CI](https://github.com/erkininfinity/money-engine-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/erkininfinity/money-engine-ai/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+[![Next.js](https://img.shields.io/badge/Next.js-16-black.svg)](https://nextjs.org/)
 [![SQLite](https://img.shields.io/badge/Database-SQLite-blue.svg)](https://sqlite.org/)
 
 **Turn your skills into a testable B2B offer. Run a 7-day revenue sprint. Learn what works. Repeat.**
 
 **Собери оффер. Найди первых клиентов. Запусти 7-дневный revenue sprint. Улучши следующий шаг.**
 
----
+Money Engine AI is an open-source, local-first pre-CRM for solo founders, freelancers, consultants, developers, and AI/automation specialists who want to validate a B2B service offer through concrete weekly experiments.
 
-## 🚀 Что такое Money Engine AI?
+It is not a get-rich-quick app, a full CRM, or an outbound spam machine. It helps users choose a revenue path, package an offer, run a manual 7-day sprint, track metrics, and review what to improve next.
 
-**Money Engine AI** — это open-source pre-CRM система для запуска первого B2B-дохода, созданная для соло-фаундеров, фрилансеров, разработчиков и AI-специалистов. 
+## Core Loop
 
-В отличие от традиционных бизнес-симуляторов или сложных CRM-систем, Money Engine AI помогает преодолеть разрыв между вашими навыками и первыми реальными продажами. Программа генерирует не абстрактные бизнес-планы, а конкретные пошаговые 7-дневные спринты с этичными сценариями продаж.
+1. Founder profile: describe skills, assets, constraints, available hours, and sales comfort.
+2. Revenue paths: generate and score 3-5 realistic B2B service paths.
+3. Offer builder: turn the selected path into a concrete offer with pain, outcome, deliverables, exclusions, and call to action.
+4. Sprint plan: generate a 7-day action checklist and ethical outreach messages.
+5. Metrics and review: track replies, calls, offers, payments, bottlenecks, and the next sprint recommendation.
 
-### 🎯 Основной Core Loop:
-1. **Профиль основателя:** Вы вводите свои навыки, опыт, доступные часы и уровень комфорта в продажах.
-2. **Revenue Path:** Система предлагает 3–5 оптимальных путей B2B-услуг (например, *AI Automation Audit*, *Revenue Leak Audit*).
-3. **Offer Builder:** Формируется конкретное предложение по формуле боли и результата.
-4. **Outreach & Sprint:** Вы получаете детальный план действий на 7 дней и шаблоны персональных (не спам!) сообщений.
-5. **Metrics & Review:** Вы вносите результаты недели, а локальный ИИ анализирует бутылочное горлышко (проблема в оффере, канале или продажах) и рекомендует следующий шаг.
+## Features
 
----
+- Next.js app with App Router and TypeScript.
+- Local-first SQLite database with Drizzle ORM.
+- OpenAI-compatible API configuration through user-owned keys.
+- Structured Zod schemas for profiles, offers, sprints, playbooks, and weekly reviews.
+- Seed revenue playbooks in `data/playbooks/`.
+- Playbook validation script and Vitest coverage.
+- Docker and Docker Compose support for self-hosting.
+- Ethics, privacy, security, and contribution documentation.
 
-## 🛠️ Быстрый старт (Quick Start)
+## Quick Start
 
-Money Engine AI разработан как локальное (local-first) приложение, обеспечивающее полную конфиденциальность ваших бизнес-данных.
+### Requirements
 
-### Требования
-- Node.js 18.x или выше
-- pnpm (рекомендуется) или npm
+- Node.js 20.9 or newer
+- npm
 
-### Локальный запуск
-1. Клонируйте репозиторий:
-   ```bash
-   git clone https://github.com/erkininfinity/money-engine-ai.git
-   cd money-engine-ai
-   ```
+### Local Development
 
-2. Установите зависимости:
-   ```bash
-   npm install
-   ```
-
-3. Настройте переменные окружения:
-   Скопируйте шаблон `.env.example` в `.env.local` и укажите ваш API-ключ для OpenAI или любого OpenAI-совместимого провайдера (например, OpenRouter, Local LLM):
-   ```bash
-   cp .env.example .env.local
-   ```
-
-4. Запустите базу данных (миграции SQLite выполнятся автоматически):
-   ```bash
-   npm run db:push
-   ```
-
-5. Запустите сервер разработки:
-   ```bash
-   npm run dev
-   ```
-   Откройте [http://localhost:3000](http://localhost:3000) in browser.
-
----
-
-## 🐳 Запуск через Docker Compose
-
-Для быстрого развертывания в Docker-контейнере выполните:
 ```bash
-docker-compose up --build
+git clone https://github.com/erkininfinity/money-engine-ai.git
+cd money-engine-ai
+npm install
+cp .env.example .env.local
+npm run db:push
+npm run dev
 ```
-Приложение будет доступно по адресу [http://localhost:3000](http://localhost:3000).
 
----
+Open http://localhost:3000 in your browser.
 
-## 🛡️ Этические принципы (Ethics & Anti-Spam)
+### Docker Compose
 
-Money Engine AI придерживается строгих этических стандартов:
-- **Никакого автоматического спама:** Мы не поддерживаем массовую холодную рассылку. Все скрипты ориентированы на личное ручное общение (warm outreach, referrals, экспертные посты).
-- **Никаких фейковых отзывов:** Мы не генерируем искусственные кейсы или социальное доказательство.
-- **Никаких гарантий дохода:** Продукт помогает проводить честные эксперименты, а не обещает «быстрые деньги».
+```bash
+cp .env.example .env.local
+docker compose up --build
+```
 
-Подробнее читайте в [docs/ethics.md](file:///d:/Erkin/1 My Projects/1 New/Money Engine AI/docs/ethics.md).
+The app will be available at http://localhost:3000.
 
----
+## Environment
 
-## 🔒 Конфиденциальность (Privacy & Local-First)
+Set these values in `.env.local`:
 
-Ваш бизнес — это ваши данные. 
-- Все профили, контакты, метрики и заметки о клиентах сохраняются в локальной базе данных SQLite на вашем компьютере.
-- Ключи API хранятся исключительно в ваших локальных `.env` файлах.
-- Внешние вызовы к языковым моделям отправляют только обезличенные данные вашего профиля и оффера.
+```env
+OPENAI_API_KEY=your-openai-api-key-here
+OPENAI_BASE_URL=https://api.openai.com/v1
+OPENAI_MODEL=gpt-4o
+DATABASE_URL=file:dev.db
+```
 
-Подробнее в [docs/privacy.md](file:///d:/Erkin/1 My Projects/1 New/Money Engine AI/docs/privacy.md).
+The app can also point to OpenAI-compatible providers if you control the endpoint and understand the provider's privacy model.
 
----
+## Testing
 
-## ⚖️ Ограничения ответственности (Disclaimer)
+```bash
+npm run lint
+npm run test
+npm run build
+```
 
-> [!WARNING]
-> Money Engine AI **не предоставляет** юридические, налоговые, бухгалтерские или финансовые консультации. Все генерируемые рекомендации, цены и юридические аспекты носят исключительно ознакомительный характер. Перед совершением сделок проконсультируйтесь с квалифицированными специалистами в вашей юрисдикции.
+`npm run test` validates playbooks first, then runs the Vitest suite.
 
----
+## Playbooks
 
-## 🗺️ Roadmap проекта
+Revenue playbooks are schema-validated YAML files in `data/playbooks/`. They describe a narrow B2B experiment: target customer, painful problem, offer, price range, channels, 7-day actions, metrics, risks, and anti-patterns.
 
-- **v0.1.0** — Генератор первого B2B спринта по профилю основателя. Импорт/Экспорт в Markdown.
-- **v0.2.0** — Трекер метрик и еженедельный аналитический AI Review.
-- **v0.3.0** — Открытый реестр сценариев дохода (Playbook Library) с поддержкой PR от сообщества.
-- **v0.4.0** — Легковесное рабочее пространство (Pre-CRM).
+Start from `.github/playbook_template.yaml` when proposing a new playbook.
 
-Подробный план развития находится в [docs/project-plan.md](file:///d:/Erkin/1 My Projects/1 New/Money Engine AI/docs/project-plan.md).
+## Ethics and Privacy
 
----
+Money Engine AI follows a strict no-spam and no-fake-proof policy:
 
-## 🤝 Участие в разработке (Contributing)
+- No bulk outreach automation.
+- No fake testimonials, fake case studies, or invented credentials.
+- No income guarantees.
+- Manual, permission-first outreach before automation.
+- Local-first data ownership by default.
 
-Мы будем рады вашим Pull Requests, особенно с новыми плейбуками (Playbooks) для запуска B2B услуг! Пожалуйста, ознакомьтесь с [CONTRIBUTING.md](file:///d:/Erkin/1 My Projects/1 New/Money Engine AI/CONTRIBUTING.md) перед созданием PR.
+Read more in [docs/ethics.md](docs/ethics.md) and [docs/privacy.md](docs/privacy.md).
 
----
+## Roadmap
 
-## 📄 Лицензия
+The public roadmap is in [docs/roadmap.md](docs/roadmap.md). The current focus is stable self-hosting, stronger playbook quality, prompt/eval fixtures, dogfooding reports, and maintainer automation for open-source workflows.
 
-Проект распространяется под лицензией **Apache 2.0**. Подробности в файле [LICENSE](file:///d:/Erkin/1 My Projects/1 New/Money Engine AI/LICENSE).
+## Contributing
+
+Pull requests are welcome, especially for:
+
+- New ethical B2B revenue playbooks.
+- Prompt and structured-output evals.
+- Tests for scoring, schemas, imports/exports, and weekly reviews.
+- Documentation improvements.
+- Self-hosting and deployment improvements.
+
+Read [CONTRIBUTING.md](CONTRIBUTING.md), [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md), and [SECURITY.md](SECURITY.md) before contributing.
+
+## License
+
+Money Engine AI is released under the [Apache 2.0 License](LICENSE).

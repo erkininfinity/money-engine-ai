@@ -1861,7 +1861,7 @@ export default function Home() {
                 <div className="grid grid-cols-7 md:flex md:flex-col gap-1.5">
                   {activeSprint.dailyActions.map((day) => {
                     const isSelected = selectedDayTab === day.day;
-                    let totalActions = day.actions.length;
+                    const totalActions = day.actions.length;
                     let checkedCount = 0;
                     day.actions.forEach((_, idx) => {
                       if (checkedActions[`${day.day}-${idx}`]) checkedCount++;

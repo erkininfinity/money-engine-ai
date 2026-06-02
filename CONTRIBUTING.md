@@ -24,7 +24,7 @@ Your playbook PR **will be rejected** if it:
 * ❌ Is just a generic business advice article rather than a structured sequence of actions.
 
 ### Playbook Format
-Playbooks must match the JSON/YAML schema defined in `lib/schemas/playbook.ts`. An example template can be found in `data/playbooks/ai-automation-audit.yaml`.
+Playbooks must match the JSON/YAML schema defined in `src/lib/schemas/playbook.ts`. An example template can be found in `.github/playbook_template.yaml` and real seed playbooks live in `data/playbooks/`.
 
 ---
 
@@ -32,7 +32,7 @@ Playbooks must match the JSON/YAML schema defined in `lib/schemas/playbook.ts`. 
 
 ### Core Technology Stack
 * **Framework:** Next.js (App Router, TypeScript)
-* **Styling:** Tailwind CSS + shadcn/ui
+* **Styling:** Tailwind CSS
 * **Database:** SQLite + Drizzle ORM
 * **Tests:** Vitest
 
@@ -45,4 +45,4 @@ Playbooks must match the JSON/YAML schema defined in `lib/schemas/playbook.ts`. 
 ---
 
 ## Code of Conduct
-Please be respectful and constructive in all issues, PR discussions, and community chats. Refer to [CODE_OF_CONDUCT.md](file:///d:/Erkin/1 My Projects/1 New/Money Engine AI/CODE_OF_CONDUCT.md) for details.
+Please be respectful and constructive in all issues, PR discussions, and community chats. Refer to [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) for details.

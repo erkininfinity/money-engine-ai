@@ -18,7 +18,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
           cache: 'npm'
 
       - name: Install dependencies
@@ -30,5 +30,5 @@ jobs:
       - name: Run tests
         run: npm run test
 
-      - name: Validate Playbooks
-        run: npm run validate-playbooks
+      - name: Run production build
+        run: npm run build
