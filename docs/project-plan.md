@@ -1561,6 +1561,22 @@ Each segment should have:
 - own sprint templates;
 - own risks and ethics rules.
 
+### v0.9.0 — CRM Automation & Webhooks
+
+Goal:
+
+```text
+Enable external CRM and lead syncing via incoming and outgoing webhooks.
+```
+
+Scope:
+
+- Incoming webhooks: Import single or bulk leads into the SQLite database.
+- Upsert logic: Avoid duplicate leads based on contact info and project ID.
+- Outgoing webhooks: Trigger automated webhooks to external URLs (n8n, Make) on CRM events (lead added, status updated, notes updated, objection logged, deleted).
+- Visual toast notification in Step CRM.
+- Automated webhook integration tests.
+
 ### v1.0.0 — Stable Self-hosted Revenue OS
 
 Goal:
@@ -1985,7 +2001,10 @@ v0.2: Tracker and weekly review
 v0.3: Community playbooks
 v0.4: Lightweight revenue workspace
 v0.5: Daily execution and integrations
+v0.6: Local market intelligence
 v0.7: Growth mode
+v0.8: Multi-segment expansion
+v0.9: CRM automation and webhooks
 v1.0: Stable self-hosted Revenue OS
 v2.0: Universal modular Income OS
 ```
