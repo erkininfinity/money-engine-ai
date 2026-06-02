@@ -106,6 +106,8 @@ Read more in [docs/ethics.md](docs/ethics.md) and [docs/privacy.md](docs/privacy
 
 The public roadmap is in [docs/roadmap.md](docs/roadmap.md). The current focus is stable self-hosting, stronger playbook quality, prompt/eval fixtures, dogfooding reports, and maintainer automation for open-source workflows.
 
+Maintainer notes for the OpenAI Codex for OSS application are in [docs/codex-for-oss.md](docs/codex-for-oss.md).
+
 ## Contributing
 
 Pull requests are welcome, especially for:
